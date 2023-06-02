@@ -55,7 +55,7 @@ jobs:
           toolchain: stable
           override: true
       - name: Install dependencies
-        run: sudo apt-get install -y gcc-s390x-linux-gnu g++-s390x-linux-gnu
+        run: sudo apt-get install -y gcc-s390x-linux-gnu g++-s390x-linux-gnu --fix-missing
       - name: Install target
         run: rustup target add s390x-unknown-linux-gnu
       - name: install cross
