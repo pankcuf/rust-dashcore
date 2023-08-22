@@ -63,6 +63,7 @@ macro_rules! impl_asref_push_bytes {
     };
 }
 
+use hashes::Hash;
 // newtypes module is solely here so we can rustfmt::skip.
 pub use newtypes::*;
 
@@ -209,5 +210,29 @@ mod newtypes {
         pub fn to_hex(&self) -> String {
             self.0.to_string()
         }
+    }
+}
+
+pub struct TxidFFI(*mut [u8; 32]);
+
+impl rs_ffi_interfaces::FFIConversion<Txid> for TxidFFI {
+    unsafe fn ffi_from(ffi: *mut Self) -> Txid {
+        Txid::from_raw_hash(hashes::sha256d::Hash::from_byte_array(*(*ffi).0))
+    }
+
+    unsafe fn ffi_to(obj: Txid) -> *mut Self {
+        rs_ffi_interfaces::boxed(TxidFFI(rs_ffi_interfaces::boxed(obj.into())))
+    }
+}
+
+pub struct CycleHashFFI(*mut [u8; 32]);
+
+impl rs_ffi_interfaces::FFIConversion<CycleHash> for CycleHashFFI {
+    unsafe fn ffi_from(ffi: *mut Self) -> CycleHash {
+        CycleHash::from_raw_hash(hashes::hash_x11::Hash::from_byte_array(*(*ffi).0))
+    }
+
+    unsafe fn ffi_to(obj: CycleHash) -> *mut Self {
+        rs_ffi_interfaces::boxed(CycleHashFFI(rs_ffi_interfaces::boxed(obj.into())))
     }
 }

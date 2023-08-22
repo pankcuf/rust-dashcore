@@ -61,6 +61,7 @@ impl fmt::Display for BLSPublicKey {
 /// A BLS Signature is 96 bytes in the scheme used for Dash Core
 #[rustversion::attr(since(1.48), derive(PartialEq, Eq, Ord, PartialOrd, Hash))]
 #[derive(Clone, Copy)]
+#[rs_ffi_macro_derive::impl_ffi_conv]
 pub struct BLSSignature([u8; 96]);
 
 impl_array_newtype!(BLSSignature, u8, 96);

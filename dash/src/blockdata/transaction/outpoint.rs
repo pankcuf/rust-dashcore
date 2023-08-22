@@ -31,9 +31,10 @@ use crate::hash_types::Txid;
 
 /// A reference to a transaction output.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[rs_ffi_macro_derive::impl_ffi_conv]
 pub struct OutPoint {
     /// The referenced transaction's txid.
-    pub txid: Txid,
+    pub txid: crate::hash_types::Txid,
     /// The index of the referenced output in its transaction's vout.
     pub vout: u32,
 }

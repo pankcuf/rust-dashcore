@@ -11,7 +11,7 @@ use core::fmt::{Debug, Formatter};
 pub use std::vec::Vec;
 use hashes::{Hash, HashEngine};
 use crate::hash_types::{CycleHash, QuorumSigningRequestId};
-use crate::{OutPoint, Txid, VarInt};
+use crate::{Txid, VarInt};
 use crate::bls_sig_utils::BLSSignature;
 use crate::consensus::{Encodable};
 use crate::internal_macros::impl_consensus_encoding;
@@ -22,17 +22,18 @@ const IS_LOCK_REQUEST_ID_PREFIX: &str = "islock";
 /// Instant send lock is a mechanism used by the Dash network to
 /// confirm transaction within 1 or 2 seconds. This data structure
 /// represents a p2p message containing a data to verify such a lock.
+#[rs_ffi_macro_derive::impl_ffi_conv]
 pub struct InstantLock {
     /// Instant lock version
     pub version: u8,
     /// Transaction inputs locked by this instant lock
-    pub inputs: Vec<OutPoint>,
+    pub inputs: Vec<crate::blockdata::transaction::outpoint::OutPoint>,
     /// Transaction hash locked by this lock
-    pub txid: Txid,
+    pub txid: crate::hash_types::Txid,
     /// Hash to figure out which quorum was used to sign this IS lock
-    pub cyclehash: CycleHash,
+    pub cyclehash: crate::hash_types::CycleHash,
     /// Quorum signature for this IS lock
-    pub signature: BLSSignature,
+    pub signature: crate::bls_sig_utils::BLSSignature,
 }
 
 impl_consensus_encoding!(InstantLock, version, inputs, txid, cyclehash, signature);
