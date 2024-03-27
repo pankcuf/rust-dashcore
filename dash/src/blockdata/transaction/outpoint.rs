@@ -51,6 +51,19 @@ impl From<[u8; 36]> for OutPoint {
     }
 }
 
+impl From<OutPoint> for [u8; 36] {
+    fn from(value: OutPoint) -> Self {
+        let mut bytes = [0u8; 36];
+        // Serialize the txid
+        let txid_bytes: [u8; 32] = value.txid.to_raw_hash().into(); // Assuming to_raw_hash() returns the hash as sha256d::Hash, which can be converted into [u8; 32]
+        bytes[..32].copy_from_slice(&txid_bytes);
+        // Serialize the vout
+        let vout_bytes = value.vout.to_le_bytes();
+        bytes[32..].copy_from_slice(&vout_bytes);
+        bytes
+    }
+}
+
 impl OutPoint {
     /// Creates a new [`OutPoint`].
     #[inline]
@@ -116,19 +129,6 @@ impl Decodable for OutPoint {
         })
     }
 }
-
-impl TryInto<[u8; 36]> for OutPoint {
-    type Error = io::Error;
-
-    fn try_into(self) -> Result<[u8; 36], Self::Error> {
-        let mut buffer = io::Cursor::new([0u8; 36]);
-
-        self.consensus_encode(&mut buffer)?;
-
-        Ok(buffer.into_inner())
-    }
-}
-
 impl TryInto<Vec<u8>> for OutPoint {
     type Error = io::Error;
 
