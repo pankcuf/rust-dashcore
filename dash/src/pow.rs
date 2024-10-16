@@ -13,9 +13,9 @@ use core::ops::{Add, Div, Mul, Not, Rem, Shl, Shr, Sub};
 #[cfg(all(test, mutate))]
 use mutagen::mutate;
 
-use crate::consensus::encode::{self, Decodable, Encodable};
 #[cfg(doc)]
 use crate::consensus::Params;
+use crate::consensus::encode::{self, Decodable, Encodable};
 use crate::hash_types::BlockHash;
 use crate::io::{self, Read, Write};
 use crate::prelude::String;
@@ -155,11 +155,7 @@ impl Target {
         };
 
         // The mantissa is signed but may not be negative.
-        if mant > 0x7F_FFFF {
-            Target::ZERO
-        } else {
-            Target(U256::from(mant) << expt)
-        }
+        if mant > 0x7F_FFFF { Target::ZERO } else { Target(U256::from(mant) << expt) }
     }
 
     /// Computes the compact value from a [`Target`] representation.
@@ -364,7 +360,7 @@ impl U256 {
     fn is_one(&self) -> bool { self.0 == 0 && self.1 == 1 }
 
     #[cfg_attr(all(test, mutate), mutate)]
-    fn is_max(&self) -> bool { self.0 == u128::max_value() && self.1 == u128::max_value() }
+    fn is_max(&self) -> bool { self.0 == u128::MAX && self.1 == u128::MAX }
 
     /// Returns the low 32 bits.
     fn low_u32(&self) -> u32 { self.low_u128() as u32 }
@@ -378,21 +374,13 @@ impl U256 {
     /// Returns `self` as a `u128` saturating to `u128::MAX` if `self` is too big.
     // Matagen gives false positive because >= and > both return u128::MAX
     fn saturating_to_u128(&self) -> u128 {
-        if *self > U256::from(u128::max_value()) {
-            u128::max_value()
-        } else {
-            self.low_u128()
-        }
+        if *self > U256::from(u128::MAX) { u128::MAX } else { self.low_u128() }
     }
 
     /// Returns the least number of bits needed to represent the number.
     #[cfg_attr(all(test, mutate), mutate)]
     fn bits(&self) -> u32 {
-        if self.0 > 0 {
-            256 - self.0.leading_zeros()
-        } else {
-            128 - self.1.leading_zeros()
-        }
+        if self.0 > 0 { 256 - self.0.leading_zeros() } else { 128 - self.1.leading_zeros() }
     }
 
     /// Wrapping multiplication by `u64`.
@@ -758,11 +746,7 @@ impl Shr<u32> for U256 {
 
 impl fmt::Display for U256 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.is_zero() {
-            f.pad_integral(true, "", "0")
-        } else {
-            self.fmt_decimal(f)
-        }
+        if self.is_zero() { f.pad_integral(true, "", "0") } else { self.fmt_decimal(f) }
     }
 }
 
@@ -807,7 +791,6 @@ impl crate::serde::Serialize for U256 {
 #[cfg(feature = "serde")]
 impl<'de> crate::serde::Deserialize<'de> for U256 {
     fn deserialize<D: crate::serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-
         use hashes::hex::FromHex;
 
         use crate::serde::de;
@@ -937,7 +920,7 @@ mod tests {
         assert_eq!(U256::from(60000_u64).bits(), 16);
         assert_eq!(U256::from(70000_u64).bits(), 17);
 
-        let u = U256::from(u128::max_value()) << 1;
+        let u = U256::from(u128::MAX) << 1;
         assert_eq!(u.bits(), 129);
 
         // Try to read the following lines out loud quickly
@@ -1009,7 +992,7 @@ mod tests {
     fn u256_display() {
         assert_eq!(format!("{}", U256::from(100_u32)), "100",);
         assert_eq!(format!("{}", U256::ZERO), "0",);
-        assert_eq!(format!("{}", U256::from(u64::max_value())), format!("{}", u64::max_value()),);
+        assert_eq!(format!("{}", U256::from(u64::MAX)), format!("{}", u64::MAX),);
         assert_eq!(
             format!("{}", U256::MAX),
             "115792089237316195423570985008687907853269984665640564039457584007913129639935",
@@ -1324,7 +1307,7 @@ mod tests {
 
     #[test]
     fn u256_addition() {
-        let x = U256::from(u128::max_value());
+        let x = U256::from(u128::MAX);
         let (add, overflow) = x.overflowing_add(U256::ONE);
         assert!(!overflow);
         assert_eq!(add, U256(1, 0));
@@ -1342,7 +1325,7 @@ mod tests {
         let x = U256(1, 0);
         let (sub, overflow) = x.overflowing_sub(U256::ONE);
         assert!(!overflow);
-        assert_eq!(sub, U256::from(u128::max_value()));
+        assert_eq!(sub, U256::from(u128::MAX));
     }
 
     #[test]
@@ -1459,23 +1442,29 @@ mod tests {
             "deadbeeaa69b455cd41bb662a69b4550a69b455cd41bb662a69b4555deadbeef",
         );
 
-        assert!(::serde_json::from_str::<U256>(
-            "\"fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffg\""
-        )
-        .is_err()); // invalid char
-        assert!(::serde_json::from_str::<U256>(
-            "\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\""
-        )
-        .is_err()); // invalid length
-        assert!(::serde_json::from_str::<U256>(
-            "\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\""
-        )
-        .is_err()); // invalid length
+        assert!(
+            ::serde_json::from_str::<U256>(
+                "\"fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffg\""
+            )
+            .is_err()
+        ); // invalid char
+        assert!(
+            ::serde_json::from_str::<U256>(
+                "\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\""
+            )
+            .is_err()
+        ); // invalid length
+        assert!(
+            ::serde_json::from_str::<U256>(
+                "\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\""
+            )
+            .is_err()
+        ); // invalid length
     }
 
     #[test]
     fn u256_is_max_correct_negative() {
-        let tc = vec![U256::ZERO, U256::ONE, U256::from(u128::max_value())];
+        let tc = vec![U256::ZERO, U256::ONE, U256::from(u128::MAX)];
         for t in tc {
             assert!(!t.is_max())
         }
@@ -1485,7 +1474,7 @@ mod tests {
     fn u256_is_max_correct_positive() {
         assert!(U256::MAX.is_max());
 
-        let u = u128::max_value();
+        let u = u128::MAX;
         assert!(((U256::from(u) << 128) + U256::from(u)).is_max());
     }
 

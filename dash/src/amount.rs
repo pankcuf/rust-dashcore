@@ -165,8 +165,9 @@ impl fmt::Display for ParseAmountError {
             ParseAmountError::InvalidFormat => f.write_str("invalid number format"),
             ParseAmountError::InputTooLarge => f.write_str("input string was too large"),
             ParseAmountError::InvalidCharacter(c) => write!(f, "invalid character in input: {}", c),
-            ParseAmountError::UnknownDenomination(ref d) =>
-                write!(f, "unknown denomination: {}", d),
+            ParseAmountError::UnknownDenomination(ref d) => {
+                write!(f, "unknown denomination: {}", d)
+            }
             ParseAmountError::PossiblyConfusingDenomination(ref d) => {
                 let (letter, upper, lower) = match d.chars().next() {
                     Some('M') => ('M', "Mega", "milli"),
@@ -174,7 +175,11 @@ impl fmt::Display for ParseAmountError {
                     // This panic could be avoided by adding enum ConfusingDenomination { Mega, Peta } but is it worth it?
                     _ => panic!("invalid error information"),
                 };
-                write!(f, "the '{}' at the beginning of {} should technically mean '{}' but that denomination is uncommon and maybe '{}' was intended", letter, d, upper, lower)
+                write!(
+                    f,
+                    "the '{}' at the beginning of {} should technically mean '{}' but that denomination is uncommon and maybe '{}' was intended",
+                    letter, d, upper, lower
+                )
             }
         }
     }
@@ -502,10 +507,10 @@ impl Amount {
     pub fn to_sat(self) -> u64 { self.0 }
 
     /// The maximum value of an [Amount].
-    pub const fn max_value() -> Amount { Amount(u64::max_value()) }
+    pub const fn max_value() -> Amount { Amount(u64::MAX) }
 
     /// The minimum value of an [Amount].
-    pub const fn min_value() -> Amount { Amount(u64::min_value()) }
+    pub const fn min_value() -> Amount { Amount(u64::MIN) }
 
     /// Convert from a value expressing bitcoins to an [Amount].
     pub fn from_btc(btc: f64) -> Result<Amount, ParseAmountError> {
@@ -521,7 +526,7 @@ impl Amount {
         if negative {
             return Err(ParseAmountError::Negative);
         }
-        if satoshi > i64::max_value() as u64 {
+        if satoshi > i64::MAX as u64 {
             return Err(ParseAmountError::TooBig);
         }
         Ok(Amount::from_sat(satoshi))
@@ -837,10 +842,10 @@ impl SignedAmount {
     pub fn to_sat(self) -> i64 { self.0 }
 
     /// The maximum value of an [SignedAmount].
-    pub const fn max_value() -> SignedAmount { SignedAmount(i64::max_value()) }
+    pub const fn max_value() -> SignedAmount { SignedAmount(i64::MAX) }
 
     /// The minimum value of an [SignedAmount].
-    pub const fn min_value() -> SignedAmount { SignedAmount(i64::min_value()) }
+    pub const fn min_value() -> SignedAmount { SignedAmount(i64::MIN) }
 
     /// Convert from a value expressing bitcoins to an [SignedAmount].
     pub fn from_btc(btc: f64) -> Result<SignedAmount, ParseAmountError> {
@@ -853,7 +858,7 @@ impl SignedAmount {
     /// with denomination, use [FromStr].
     pub fn from_str_in(s: &str, denom: Denomination) -> Result<SignedAmount, ParseAmountError> {
         let (negative, satoshi) = parse_signed_to_satoshi(s, denom)?;
-        if satoshi > i64::max_value() as u64 {
+        if satoshi > i64::MAX as u64 {
             return Err(ParseAmountError::TooBig);
         }
         Ok(match negative {
@@ -1127,8 +1132,8 @@ pub trait CheckedSum<R>: private::SumSeal<R> {
 }
 
 impl<T> CheckedSum<Amount> for T
-    where
-        T: Iterator<Item = Amount>,
+where
+    T: Iterator<Item = Amount>,
 {
     fn checked_sum(mut self) -> Option<Amount> {
         let first = Some(self.next().unwrap_or_default());
@@ -1138,8 +1143,8 @@ impl<T> CheckedSum<Amount> for T
 }
 
 impl<T> CheckedSum<SignedAmount> for T
-    where
-        T: Iterator<Item = SignedAmount>,
+where
+    T: Iterator<Item = SignedAmount>,
 {
     fn checked_sum(mut self) -> Option<SignedAmount> {
         let first = Some(self.next().unwrap_or_default());
@@ -1283,7 +1288,7 @@ pub mod serde {
             use core::fmt;
             use core::marker::PhantomData;
 
-            use serde::{de, Deserializer, Serializer};
+            use serde::{Deserializer, Serializer, de};
 
             use crate::amount::serde::SerdeAmountForOpt;
 
@@ -1310,14 +1315,14 @@ pub mod serde {
                     }
 
                     fn visit_none<E>(self) -> Result<Self::Value, E>
-                        where
-                            E: de::Error,
+                    where
+                        E: de::Error,
                     {
                         Ok(None)
                     }
                     fn visit_some<D>(self, d: D) -> Result<Self::Value, D::Error>
-                        where
-                            D: Deserializer<'de>,
+                    where
+                        D: Deserializer<'de>,
                     {
                         Ok(Some(X::des_sat(d)?))
                     }
@@ -1350,7 +1355,7 @@ pub mod serde {
             use core::fmt;
             use core::marker::PhantomData;
 
-            use serde::{de, Deserializer, Serializer};
+            use serde::{Deserializer, Serializer, de};
 
             use crate::amount::serde::SerdeAmountForOpt;
 
@@ -1377,14 +1382,14 @@ pub mod serde {
                     }
 
                     fn visit_none<E>(self) -> Result<Self::Value, E>
-                        where
-                            E: de::Error,
+                    where
+                        E: de::Error,
                     {
                         Ok(None)
                     }
                     fn visit_some<D>(self, d: D) -> Result<Self::Value, D::Error>
-                        where
-                            D: Deserializer<'de>,
+                    where
+                        D: Deserializer<'de>,
                     {
                         Ok(Some(X::des_btc(d)?))
                     }
@@ -1668,8 +1673,8 @@ mod tests {
             Ok(Amount::from_sat(12_345_678_901__123_456_78))
         );
 
-        // make sure satoshi > i64::max_value() is checked.
-        let amount = Amount::from_sat(i64::max_value() as u64);
+        // make sure satoshi > i64::MAX is checked.
+        let amount = Amount::from_sat(i64::MAX as u64);
         assert_eq!(Amount::from_str_in(&amount.to_string_in(sat), sat), Ok(amount));
         assert_eq!(
             Amount::from_str_in(&(amount + Amount(1)).to_string_in(sat), sat),
@@ -1901,15 +1906,12 @@ mod tests {
         let ua = Amount::from_sat;
 
         assert_eq!(Amount::max_value().to_signed(), Err(E::TooBig));
-        assert_eq!(ua(i64::max_value() as u64).to_signed(), Ok(sa(i64::max_value())));
-        assert_eq!(ua(i64::max_value() as u64 + 1).to_signed(), Err(E::TooBig));
+        assert_eq!(ua(i64::MAX as u64).to_signed(), Ok(sa(i64::MAX)));
+        assert_eq!(ua(i64::MAX as u64 + 1).to_signed(), Err(E::TooBig));
 
-        assert_eq!(sa(i64::max_value()).to_unsigned(), Ok(ua(i64::max_value() as u64)));
+        assert_eq!(sa(i64::MAX).to_unsigned(), Ok(ua(i64::MAX as u64)));
 
-        assert_eq!(
-            sa(i64::max_value()).to_unsigned().unwrap().to_signed(),
-            Ok(sa(i64::max_value()))
-        );
+        assert_eq!(sa(i64::MAX).to_unsigned().unwrap().to_signed(), Ok(sa(i64::MAX)));
     }
 
     #[test]
@@ -1988,57 +1990,45 @@ mod tests {
             ua_str(&ua_sat(21_000_000).to_string_in(D::Bit), D::Bit),
             Ok(ua_sat(21_000_000))
         );
-        assert_eq!(
-            ua_str(&ua_sat(1).to_string_in(D::MicroDash), D::MicroDash),
-            Ok(ua_sat(1))
-        );
+        assert_eq!(ua_str(&ua_sat(1).to_string_in(D::MicroDash), D::MicroDash), Ok(ua_sat(1)));
         assert_eq!(
             ua_str(&ua_sat(1_000_000_000_000).to_string_in(D::MilliDash), D::MilliDash),
             Ok(ua_sat(1_000_000_000_000))
         );
         assert_eq!(
-            ua_str(&ua_sat(u64::max_value()).to_string_in(D::MilliDash), D::MilliDash),
+            ua_str(&ua_sat(u64::MAX).to_string_in(D::MilliDash), D::MilliDash),
             Err(ParseAmountError::TooBig)
         );
 
-        assert_eq!(
-            sa_str(&sa_sat(-1).to_string_in(D::MicroDash), D::MicroDash),
-            Ok(sa_sat(-1))
-        );
+        assert_eq!(sa_str(&sa_sat(-1).to_string_in(D::MicroDash), D::MicroDash), Ok(sa_sat(-1)));
 
         assert_eq!(
-            sa_str(&sa_sat(i64::max_value()).to_string_in(D::Satoshi), D::MicroDash),
+            sa_str(&sa_sat(i64::MAX).to_string_in(D::Satoshi), D::MicroDash),
             Err(ParseAmountError::TooBig)
         );
         // Test an overflow bug in `abs()`
         assert_eq!(
-            sa_str(&sa_sat(i64::min_value()).to_string_in(D::Satoshi), D::MicroDash),
+            sa_str(&sa_sat(i64::MIN).to_string_in(D::Satoshi), D::MicroDash),
             Err(ParseAmountError::TooBig)
         );
 
+        assert_eq!(sa_str(&sa_sat(-1).to_string_in(D::NanoDash), D::NanoDash), Ok(sa_sat(-1)));
         assert_eq!(
-            sa_str(&sa_sat(-1).to_string_in(D::NanoDash), D::NanoDash),
-            Ok(sa_sat(-1))
-        );
-        assert_eq!(
-            sa_str(&sa_sat(i64::max_value()).to_string_in(D::Satoshi), D::NanoDash),
+            sa_str(&sa_sat(i64::MAX).to_string_in(D::Satoshi), D::NanoDash),
             Err(ParseAmountError::TooPrecise)
         );
         assert_eq!(
-            sa_str(&sa_sat(i64::min_value()).to_string_in(D::Satoshi), D::NanoDash),
+            sa_str(&sa_sat(i64::MIN).to_string_in(D::Satoshi), D::NanoDash),
             Err(ParseAmountError::TooPrecise)
         );
 
+        assert_eq!(sa_str(&sa_sat(-1).to_string_in(D::PicoDash), D::PicoDash), Ok(sa_sat(-1)));
         assert_eq!(
-            sa_str(&sa_sat(-1).to_string_in(D::PicoDash), D::PicoDash),
-            Ok(sa_sat(-1))
-        );
-        assert_eq!(
-            sa_str(&sa_sat(i64::max_value()).to_string_in(D::Satoshi), D::PicoDash),
+            sa_str(&sa_sat(i64::MAX).to_string_in(D::Satoshi), D::PicoDash),
             Err(ParseAmountError::TooPrecise)
         );
         assert_eq!(
-            sa_str(&sa_sat(i64::min_value()).to_string_in(D::Satoshi), D::PicoDash),
+            sa_str(&sa_sat(i64::MIN).to_string_in(D::Satoshi), D::PicoDash),
             Err(ParseAmountError::TooPrecise)
         );
     }
@@ -2240,12 +2230,12 @@ mod tests {
         assert_eq!(Some(Amount::from_sat(1400)), sum);
 
         let amounts =
-            vec![Amount::from_sat(u64::max_value()), Amount::from_sat(1337), Amount::from_sat(21)];
+            vec![Amount::from_sat(u64::MAX), Amount::from_sat(1337), Amount::from_sat(21)];
         let sum = amounts.into_iter().checked_sum();
         assert_eq!(None, sum);
 
         let amounts = vec![
-            SignedAmount::from_sat(i64::min_value()),
+            SignedAmount::from_sat(i64::MIN),
             SignedAmount::from_sat(-1),
             SignedAmount::from_sat(21),
         ];
@@ -2253,7 +2243,7 @@ mod tests {
         assert_eq!(None, sum);
 
         let amounts = vec![
-            SignedAmount::from_sat(i64::max_value()),
+            SignedAmount::from_sat(i64::MAX),
             SignedAmount::from_sat(1),
             SignedAmount::from_sat(21),
         ];
@@ -2283,8 +2273,7 @@ mod tests {
 
     #[test]
     fn disallow_confusing_forms() {
-        let confusing =
-            vec!["Msat", "Msats", "MSAT", "MSATS", "MSat", "MSats", "MBTC", "Mbtc", "PBTC"];
+        let confusing = ["Msat", "Msats", "MSAT", "MSATS", "MSat", "MSats", "MBTC", "Mbtc", "PBTC"];
         for denom in confusing.iter() {
             match Denomination::from_str(denom) {
                 Ok(_) => panic!("from_str should error for {}", denom),
@@ -2297,7 +2286,7 @@ mod tests {
     #[test]
     fn disallow_unknown_denomination() {
         // Non-exhaustive list of unknown forms.
-        let unknown = vec!["NBTC", "UBTC", "ABC", "abc", "cBtC", "Sat", "Sats"];
+        let unknown = ["NBTC", "UBTC", "ABC", "abc", "cBtC", "Sat", "Sats"];
         for denom in unknown.iter() {
             match Denomination::from_str(denom) {
                 Ok(_) => panic!("from_str should error for {}", denom),

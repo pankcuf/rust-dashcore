@@ -4,8 +4,8 @@ use core::fmt;
 use core::ops::{Div, Mul};
 
 use super::Weight;
-use crate::prelude::*;
 use crate::Amount;
+use crate::prelude::*;
 
 /// Represents fee rate.
 ///
@@ -26,10 +26,10 @@ impl FeeRate {
     /// Minimum possible value (0 sat/kwu).
     ///
     /// Equivalent to [`ZERO`](Self::ZERO), may better express intent in some contexts.
-    pub const MIN: FeeRate = FeeRate(u64::min_value());
+    pub const MIN: FeeRate = FeeRate(u64::MIN);
 
     /// Maximum possible value.
-    pub const MAX: FeeRate = FeeRate(u64::max_value());
+    pub const MAX: FeeRate = FeeRate(u64::MAX);
 
     /// Minimum fee rate required to broadcast a transaction.
     ///
@@ -82,11 +82,7 @@ impl FeeRate {
 /// Alternative will display the unit.
 impl fmt::Display for FeeRate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if f.alternate() {
-            write!(f, "{} sat/kwu", self.0)
-        } else {
-            fmt::Display::fmt(&self.0, f)
-        }
+        if f.alternate() { write!(f, "{} sat/kwu", self.0) } else { fmt::Display::fmt(&self.0, f) }
     }
 }
 
@@ -126,8 +122,8 @@ mod tests {
     #[test]
     fn fee_rate_const_test() {
         assert_eq!(0, FeeRate::ZERO.to_sat_per_kwu());
-        assert_eq!(u64::min_value(), FeeRate::MIN.to_sat_per_kwu());
-        assert_eq!(u64::max_value(), FeeRate::MAX.to_sat_per_kwu());
+        assert_eq!(u64::MIN, FeeRate::MIN.to_sat_per_kwu());
+        assert_eq!(u64::MAX, FeeRate::MAX.to_sat_per_kwu());
         assert_eq!(250, FeeRate::BROADCAST_MIN.to_sat_per_kwu());
         assert_eq!(750, FeeRate::DUST.to_sat_per_kwu());
     }

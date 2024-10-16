@@ -471,7 +471,7 @@ impl Time {
     pub const MIN: Self = Time(LOCK_TIME_THRESHOLD);
 
     /// The maximum absolute block time (Sun Feb 07 2106 06:28:15 GMT+0000).
-    pub const MAX: Self = Time(u32::max_value());
+    pub const MAX: Self = Time(u32::MAX);
 
     /// The minimum absolute block time.
     ///
@@ -499,11 +499,7 @@ impl Time {
     /// ```
     #[inline]
     pub fn from_consensus(n: u32) -> Result<Time, Error> {
-        if is_block_time(n) {
-            Ok(Self(n))
-        } else {
-            Err(ConversionError::invalid_time(n).into())
-        }
+        if is_block_time(n) { Ok(Self(n)) } else { Err(ConversionError::invalid_time(n).into()) }
     }
 
     /// Converts this `Time` to its inner `u32` value.

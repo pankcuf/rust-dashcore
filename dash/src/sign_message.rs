@@ -21,11 +21,11 @@
 //! library is used with the `secp-recovery` feature.
 //!
 
-use hashes::{sha256d, Hash, HashEngine};
+use hashes::{Hash, HashEngine, sha256d};
 
 #[cfg(feature = "secp-recovery")]
 pub use self::message_signing::{MessageSignature, MessageSignatureError};
-use crate::consensus::{encode, Encodable};
+use crate::consensus::{Encodable, encode};
 
 /// The prefix for signed messages using Dash's message signing protocol.
 pub const DASH_SIGNED_MSG_PREFIX: &[u8] = b"\x19DarkCoin Signed Message:\n";
@@ -62,11 +62,13 @@ mod message_signing {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match *self {
                 MessageSignatureError::InvalidLength => write!(f, "length not 65 bytes"),
-                MessageSignatureError::InvalidEncoding(ref e) =>
-                    write_err!(f, "invalid encoding"; e),
+                MessageSignatureError::InvalidEncoding(ref e) => {
+                    write_err!(f, "invalid encoding"; e)
+                }
                 MessageSignatureError::InvalidBase64 => write!(f, "invalid base64"),
-                MessageSignatureError::UnsupportedAddressType(ref address_type) =>
-                    write!(f, "unsupported address type: {}", address_type),
+                MessageSignatureError::UnsupportedAddressType(ref address_type) => {
+                    write!(f, "unsupported address type: {}", address_type)
+                }
             }
         }
     }

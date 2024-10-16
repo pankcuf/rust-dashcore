@@ -24,10 +24,10 @@ impl Weight {
     /// Minimum possible value (0 wu).
     ///
     /// Equivalent to [`ZERO`](Self::ZERO), may better express intent in some contexts.
-    pub const MIN: Weight = Weight(u64::min_value());
+    pub const MIN: Weight = Weight(u64::MIN);
 
     /// Maximum possible value.
-    pub const MAX: Weight = Weight(u64::max_value());
+    pub const MAX: Weight = Weight(u64::MAX);
 
     /// Directly constructs `Weight` from weight units.
     pub const fn from_wu(wu: u64) -> Self { Weight(wu) }
@@ -91,11 +91,7 @@ impl Weight {
 /// Alternative will display the unit.
 impl fmt::Display for Weight {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if f.alternate() {
-            write!(f, "{} wu", self.0)
-        } else {
-            fmt::Display::fmt(&self.0, f)
-        }
+        if f.alternate() { write!(f, "{} wu", self.0) } else { fmt::Display::fmt(&self.0, f) }
     }
 }
 
@@ -116,7 +112,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn kilo_weight_constructor_panic_test() {
-        Weight::from_kwu(u64::max_value()).expect("expected weight unit");
+        Weight::from_kwu(u64::MAX).expect("expected weight unit");
     }
 
     #[test]
@@ -124,7 +120,7 @@ mod tests {
         let vb = Weight::from_vb(1).expect("expected weight unit");
         assert_eq!(Weight(4), vb);
 
-        let vb = Weight::from_vb(u64::max_value());
+        let vb = Weight::from_vb(u64::MAX);
         assert_eq!(None, vb);
     }
 
@@ -136,7 +132,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn from_vb_unchecked_panic_test() { Weight::from_vb_unchecked(u64::max_value()); }
+    fn from_vb_unchecked_panic_test() { Weight::from_vb_unchecked(u64::MAX); }
 
     #[test]
     fn from_witness_data_size_test() {
@@ -255,8 +251,8 @@ impl DivAssign<u64> for Weight {
 
 impl core::iter::Sum for Weight {
     fn sum<I>(iter: I) -> Self
-        where
-            I: Iterator<Item = Self>,
+    where
+        I: Iterator<Item = Self>,
     {
         Weight(iter.map(Weight::to_wu).sum())
     }
@@ -264,8 +260,8 @@ impl core::iter::Sum for Weight {
 
 impl<'a> core::iter::Sum<&'a Weight> for Weight {
     fn sum<I>(iter: I) -> Self
-        where
-            I: Iterator<Item = &'a Weight>,
+    where
+        I: Iterator<Item = &'a Weight>,
     {
         iter.cloned().sum()
     }

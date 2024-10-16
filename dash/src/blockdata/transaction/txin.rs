@@ -20,11 +20,10 @@
 //! A TxIn is an input to a transaction.
 //!
 
-use crate::io;
 use crate::blockdata::script::ScriptBuf;
 use crate::consensus::{Decodable, Encodable, encode};
-use crate::{Witness};
 use crate::transaction::outpoint::OutPoint;
+use crate::{Witness, io};
 
 /// A transaction input, which defines old coins to be consumed
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -46,7 +45,7 @@ pub struct TxIn {
     /// Encodable/Decodable, as it is (de)serialized at the end of the full
     /// Transaction. It *is* (de)serialized with the rest of the TxIn in other
     /// (de)serialization routines.
-    pub witness: Witness
+    pub witness: Witness,
 }
 
 impl Default for TxIn {
@@ -86,8 +85,9 @@ impl Decodable for TxIn {
 #[cfg(test)]
 mod tests {
     use hashes::hex::FromHex;
-    use crate::consensus::encode::deserialize;
+
     use super::*;
+    use crate::consensus::encode::deserialize;
 
     #[test]
     fn test_txin() {
@@ -102,6 +102,6 @@ mod tests {
         assert_eq!(txin.script_sig, ScriptBuf::new());
         assert_eq!(txin.sequence, 0xFFFFFFFF);
         assert_eq!(txin.previous_output, OutPoint::default());
-        assert_eq!(txin.witness.len(), 0 as usize);
+        assert_eq!(txin.witness.len(), 0_usize);
     }
 }

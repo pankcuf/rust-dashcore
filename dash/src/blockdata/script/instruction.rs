@@ -4,7 +4,7 @@
 use core::convert::TryInto;
 
 use crate::blockdata::opcodes;
-use crate::blockdata::script::{read_uint_iter, Error, PushBytes, Script, ScriptBuf, UintError};
+use crate::blockdata::script::{Error, PushBytes, Script, ScriptBuf, UintError, read_uint_iter};
 
 /// A "parsed opcode" which allows iterating over a [`Script`] in a more sensible way.
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -92,7 +92,7 @@ impl<'a> Instructions<'a> {
             // We do exhaustive matching to not forget to handle new variants if we extend
             // `UintError` type.
             // Overflow actually means early end of script (script is definitely shorter
-            // than `usize::max_value()`)
+            // than `usize::MAX`)
             Err(UintError::EarlyEndOfScript) | Err(UintError::NumericOverflow) => {
                 self.kill();
                 return Some(Err(Error::EarlyEndOfScript));

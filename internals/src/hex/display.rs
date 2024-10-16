@@ -6,8 +6,8 @@
 use core::borrow::Borrow;
 use core::fmt;
 
-use super::buf_encoder::{BufEncoder, OutBytes};
 use super::Case;
+use super::buf_encoder::{BufEncoder, OutBytes};
 use crate::hex::buf_encoder::FixedLenBuf;
 #[cfg(feature = "alloc")]
 use crate::prelude::*;
@@ -218,7 +218,7 @@ macro_rules! fmt_hex_exact {
     ($formatter:expr, $len:expr, $bytes:expr, $case:expr) => {{
         // statically check $len
         #[allow(deprecated)]
-        const _: () = [()][($len > usize::max_value() / 2) as usize];
+        const _: () = [()][($len > usize::MAX / 2) as usize];
         assert_eq!($bytes.len(), $len);
         let mut buf = [0u8; $len * 2];
         let buf = $crate::hex::buf_encoder::AsOutBytes::as_mut_out_bytes(&mut buf);
