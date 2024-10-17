@@ -76,6 +76,11 @@ pub extern crate bitcoinconsensus;
 pub extern crate dashcore_hashes as hashes;
 pub extern crate secp256k1;
 
+#[cfg(feature = "bls-signatures")]
+pub use bls_signatures;
+#[cfg(feature = "ed25519-dalek")]
+pub use ed25519_dalek;
+
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate actual_serde as serde;
@@ -102,6 +107,7 @@ pub mod consensus;
 // Private until we either make this a crate or flatten it - still to be decided.
 pub mod bls_sig_utils;
 pub(crate) mod crypto;
+mod dip9;
 pub mod ephemerealdata;
 pub mod error;
 pub mod hash_types;

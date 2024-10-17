@@ -43,17 +43,25 @@ pub enum Error {
     Base58(base58::Error),
     /// secp256k1-related error
     Secp256k1(secp256k1::Error),
+    /// bls signatures related error
+    #[cfg(feature = "bls-signatures")]
+    BLSError(String),
+    /// edwards 25519 related error
+    #[cfg(feature = "ed25519-dalek")]
+    Ed25519Dalek(String),
     /// Invalid key prefix error
     InvalidKeyPrefix(u8),
     /// Hex decoding error
     Hex(hex::Error),
     /// `PublicKey` hex should be 66 or 130 digits long.
     InvalidHexLength(usize),
+    /// Something is not supported based on active features
+    NotSupported(String),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
+        match self {
             Error::Base58(ref e) => write_err!(f, "key base58 error"; e),
             Error::Secp256k1(ref e) => write_err!(f, "key secp256k1 error"; e),
             Error::InvalidKeyPrefix(ref b) => write!(f, "key prefix invalid: {}", b),
@@ -61,6 +69,13 @@ impl fmt::Display for Error {
             Error::InvalidHexLength(got) => {
                 write!(f, "PublicKey hex should be 66 or 130 digits long, got: {}", got)
             }
+            Error::NotSupported(ref string) => {
+                write!(f, "{}", string.as_str())
+            }
+            #[cfg(feature = "bls-signatures")]
+            Error::BLSError(ref string) => write!(f, "{}", string.as_str()),
+            #[cfg(feature = "ed25519-dalek")]
+            Error::Ed25519Dalek(ref string) => write!(f, "{}", string.as_str()),
         }
     }
 }
@@ -75,6 +90,11 @@ impl std::error::Error for Error {
             Secp256k1(e) => Some(e),
             Hex(e) => Some(e),
             InvalidKeyPrefix(_) | InvalidHexLength(_) => None,
+            NotSupported(_) => None,
+            #[cfg(feature = "bls-signatures")]
+            BLSError(_) => None,
+            #[cfg(feature = "ed25519-dalek")]
+            Ed25519Dalek(_) => None,
         }
     }
 }
