@@ -23,6 +23,7 @@ use crate::consensus::{Decodable, Encodable, encode};
 use crate::hash_types::{QuorumHash, QuorumVVecHash};
 use crate::prelude::*;
 use crate::{VarInt, io};
+use crate::consensus::encode::{compact_size_len, fixed_bitset_len, read_compact_size, read_fixed_bitset, write_compact_size, write_fixed_bitset};
 
 /// A Quorum Finalization Commitment. It is described in the finalization section of DIP6:
 /// [dip-0006.md#6-finalization-phase](https://github.com/dashpay/dips/blob/master/dip-0006.md#6-finalization-phase)
@@ -35,8 +36,8 @@ pub struct QuorumFinalizationCommitment {
     pub llmq_type: u8,
     pub quorum_hash: QuorumHash,
     pub quorum_index: Option<i16>,
-    pub signers: Vec<u8>,
-    pub valid_members: Vec<u8>,
+    pub signers: Vec<bool>,
+    pub valid_members: Vec<bool>,
     pub quorum_public_key: BLSPublicKey,
     pub quorum_vvec_hash: QuorumVVecHash,
     pub quorum_sig: BLSSignature,
@@ -47,8 +48,10 @@ impl QuorumFinalizationCommitment {
     /// The size of the payload in bytes.
     pub fn size(&self) -> usize {
         let mut size = 2 + 1 + 32 + 48 + 32 + 96 + 96;
-        size += VarInt(self.signers.len() as u64).len() + self.signers.len();
-        size += VarInt(self.valid_members.len() as u64).len() + self.valid_members.len();
+        size += compact_size_len(self.signers.len() as u32);
+        size += fixed_bitset_len(self.signers.as_slice(), self.signers.len());
+        size += compact_size_len(self.valid_members.len() as u32);
+        size += fixed_bitset_len(self.valid_members.as_slice(), self.valid_members.len());
         if self.version == 2 || self.version == 4 {
             size += 2;
         }
@@ -67,8 +70,10 @@ impl Encodable for QuorumFinalizationCommitment {
                 len += q_index.consensus_encode(w)?;
             }
         }
-        len += self.signers.consensus_encode(w)?;
-        len += self.valid_members.consensus_encode(w)?;
+        len += write_compact_size(w, self.signers.len() as u32)?;
+        len += write_fixed_bitset(w, self.signers.as_slice(), self.signers.iter().len())?;
+        len += write_compact_size(w, self.valid_members.len() as u32)?;
+        len += write_fixed_bitset(w, self.valid_members.as_slice(), self.valid_members.iter().len())?;
         len += self.quorum_public_key.consensus_encode(w)?;
         len += self.quorum_vvec_hash.consensus_encode(w)?;
         len += self.quorum_sig.consensus_encode(w)?;
@@ -96,8 +101,8 @@ impl Decodable for QuorumFinalizationCommitment {
             llmq_type,
             quorum_hash,
             quorum_index,
-            signers: signers.iter().map(|&b| b as u8).collect(),
-            valid_members: valid_members.iter().map(|&b| b as u8).collect(),
+            signers,
+            valid_members,
             quorum_public_key,
             quorum_vvec_hash,
             quorum_sig,
@@ -144,54 +149,6 @@ impl Decodable for QuorumCommitmentPayload {
     }
 }
 
-fn read_compact_size<R: Read + ?Sized>(r: &mut R) -> io::Result<u64> {
-    let mut marker = [0u8; 1];
-    r.read_exact(&mut marker)?;
-    match marker[0] {
-        0xFD => {
-            // Read the next 2 bytes as a little-endian u16
-            let mut buf = [0u8; 2];
-            r.read_exact(&mut buf)?;
-            Ok(u16::from_le_bytes(buf) as u64)
-        }
-        0xFE => {
-            // Read the next 4 bytes as a little-endian u32
-            let mut buf = [0u8; 4];
-            r.read_exact(&mut buf)?;
-            Ok(u32::from_le_bytes(buf) as u64)
-        }
-        0xFF => {
-            // Read the next 8 bytes as a little-endian u64
-            let mut buf = [0u8; 8];
-            r.read_exact(&mut buf)?;
-            Ok(u64::from_le_bytes(buf))
-        }
-        value => {
-            // For values less than 253, the value is stored directly in the marker byte
-            Ok(value as u64)
-        }
-    }
-}
-
-fn read_fixed_bitset<R: Read + ?Sized>(r: &mut R, size: usize) -> std::io::Result<Vec<bool>> {
-    // Calculate the number of bytes needed
-    let num_bytes = (size + 7) / 8;
-    let mut bytes = vec![0u8; num_bytes];
-
-    // Read bytes from the reader
-    r.read_exact(&mut bytes)?;
-
-    // Unpack bits into a vector of bools
-    let mut bits = Vec::with_capacity(size);
-    for p in 0..size {
-        let byte = bytes[p / 8];
-        let bit = (byte >> (p % 8)) & 1;
-        bits.push(bit != 0);
-    }
-
-    Ok(bits)
-}
-
 #[cfg(test)]
 mod tests {
     use hashes::Hash;
@@ -199,31 +156,53 @@ mod tests {
     use crate::bls_sig_utils::{BLSPublicKey, BLSSignature};
     use crate::consensus::Encodable;
     use crate::hash_types::{QuorumHash, QuorumVVecHash};
-    use crate::transaction::special_transaction::quorum_commitment::{
-        QuorumCommitmentPayload, QuorumFinalizationCommitment,
-    };
+    use crate::transaction::special_transaction::quorum_commitment::{QuorumCommitmentPayload, QuorumFinalizationCommitment};
 
     #[test]
     fn size() {
-        let want = 325;
-        let payload = QuorumCommitmentPayload {
-            version: 0,
-            height: 0,
-            finalization_commitment: QuorumFinalizationCommitment {
+        {
+            let want = 317;
+            let payload = QuorumCommitmentPayload {
                 version: 0,
-                llmq_type: 0,
-                quorum_hash: QuorumHash::all_zeros(),
-                quorum_index: None,
-                signers: vec![1, 2, 3, 4, 5],
-                valid_members: vec![6, 7, 8, 9, 0],
-                quorum_public_key: BLSPublicKey::from([0; 48]),
-                quorum_vvec_hash: QuorumVVecHash::all_zeros(),
-                quorum_sig: BLSSignature::from([0; 96]),
-                sig: BLSSignature::from([0; 96]),
-            },
-        };
-        let actual = payload.consensus_encode(&mut Vec::new()).unwrap();
-        assert_eq!(payload.size(), want);
-        assert_eq!(actual, want);
+                height: 0,
+                finalization_commitment: QuorumFinalizationCommitment {
+                    version: 1,
+                    llmq_type: 0,
+                    quorum_hash: QuorumHash::all_zeros(),
+                    quorum_index: None,
+                    signers: vec![true, false, true, true, false],
+                    valid_members: vec![false, true, false, true],
+                    quorum_public_key: BLSPublicKey::from([0; 48]),
+                    quorum_vvec_hash: QuorumVVecHash::all_zeros(),
+                    quorum_sig: BLSSignature::from([0; 96]),
+                    sig: BLSSignature::from([0; 96]),
+                },
+            };
+            let actual = payload.consensus_encode(&mut Vec::new()).unwrap();
+            assert_eq!(payload.size(), want);
+            assert_eq!(actual, want);
+        }
+        {
+            let want = 319;
+            let payload = QuorumCommitmentPayload {
+                version: 0,
+                height: 0,
+                finalization_commitment: QuorumFinalizationCommitment {
+                    version: 2,
+                    llmq_type: 0,
+                    quorum_hash: QuorumHash::all_zeros(),
+                    quorum_index: Some(1),
+                    signers: vec![true, false, true, true, false, true, false],
+                    valid_members: vec![false, true, false, true, false, true],
+                    quorum_public_key: BLSPublicKey::from([0; 48]),
+                    quorum_vvec_hash: QuorumVVecHash::all_zeros(),
+                    quorum_sig: BLSSignature::from([0; 96]),
+                    sig: BLSSignature::from([0; 96]),
+                },
+            };
+            let actual = payload.consensus_encode(&mut Vec::new()).unwrap();
+            assert_eq!(payload.size(), want);
+            assert_eq!(actual, want);
+        }
     }
 }
