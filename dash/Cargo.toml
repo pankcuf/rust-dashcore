@@ -61,7 +61,7 @@ anyhow = { version= "1.0" }
 hex = { version= "0.4" }
 bincode = { version= "2.0.0-rc.3", optional = true }
 bitflags = "2.6.0"
-bls-signatures = { git = "https://github.com/dashpay/bls-signatures", rev = "4e070243aed142bc458472f8807ab77527dd879a", features = ["legacy", "bip32", "apple", "use_serde" ]  }
+bls-signatures = { git = "https://github.com/dashpay/bls-signatures", rev = "4e070243aed142bc458472f8807ab77527dd879a", features = ["legacy", "bip32", "apple", "use_serde" ], optional = true  }
 serde_repr = "0.1.19"
 strum = { version = "0.26", features = ["derive"] }
 lazy_static = "1.5.0"
