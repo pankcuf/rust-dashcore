@@ -444,6 +444,7 @@ dependencies = [
  "core2 0.3.3",
  "dashcore-private",
  "dyn-clone",
+ "ferment-macro",
  "rs-x11-hash",
  "schemars",
  "secp256k1",

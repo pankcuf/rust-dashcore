@@ -128,9 +128,9 @@ impl Decodable for QuorumFinalizationCommitment {
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[ferment_macro::export]
 pub struct QuorumCommitmentPayload {
-    version: u16,
-    height: u32,
-    finalization_commitment: QuorumFinalizationCommitment,
+    pub version: u16,
+    pub height: u32,
+    pub finalization_commitment: QuorumFinalizationCommitment,
 }
 
 impl QuorumCommitmentPayload {

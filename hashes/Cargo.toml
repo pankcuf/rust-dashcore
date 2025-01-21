@@ -38,7 +38,7 @@ dyn-clone = { version = "<=1.0.7", default_features = false, optional = true }
 secp256k1 = { default-features = false, features = ["hashes"], version= "0.30.0" }
 
 rs-x11-hash = { version = "0.1.8", optional = true }
-
+ferment-macro = { git = "https://github.com/dashpay/ferment", branch = "feat/lifetime-support", package = "ferment-macro" }
 [dev-dependencies]
 serde_test = "1.0"
 serde_json = "1.0"

@@ -95,7 +95,7 @@ mod newtypes {
     hash_newtype! {
         /// A dash transaction hash/transaction ID.
         #[ferment_macro::export]
-        pub struct Txid(sha256d::Hash);
+        pub struct Txid(pub sha256d::Hash);
 
         /// A dash witness transaction ID.
         pub struct Wtxid(sha256d::Hash);
@@ -105,7 +105,7 @@ mod newtypes {
 
         /// A hash of a public key.
         #[ferment_macro::export]
-        pub struct PubkeyHash(hash160::Hash);
+        pub struct PubkeyHash(pub hash160::Hash);
         /// A hash of Dash Script bytecode.
         pub struct ScriptHash(hash160::Hash);
         /// SegWit version of a public key hash.
@@ -131,25 +131,26 @@ mod newtypes {
         ///
         /// The merkle root of the masternode list
         #[ferment_macro::export]
-        pub struct MerkleRootMasternodeList(sha256d::Hash);
+        pub struct MerkleRootMasternodeList(pub sha256d::Hash);
         /// The merkle root of the quorums
         #[ferment_macro::export]
-        pub struct MerkleRootQuorums(sha256d::Hash);
+        pub struct MerkleRootQuorums(pub sha256d::Hash);
         /// A special transaction payload hash
         #[ferment_macro::export]
-        pub struct SpecialTransactionPayloadHash(sha256d::Hash);
+        pub struct SpecialTransactionPayloadHash(pub sha256d::Hash);
         /// A hash of all transaction inputs
         #[ferment_macro::export]
-        pub struct InputsHash(sha256d::Hash);
+        pub struct InputsHash(pub sha256d::Hash);
         /// A hash used to identify a quorum
         #[hash_newtype(forward)]
         #[ferment_macro::export]
-        pub struct QuorumHash(sha256d::Hash);
+        pub struct QuorumHash(pub sha256d::Hash);
         /// A hash of a quorum verification vector
         #[ferment_macro::export]
-        pub struct QuorumVVecHash(sha256d::Hash);
+        pub struct QuorumVVecHash(pub sha256d::Hash);
         /// A hash of a quorum signing request id
-        pub struct QuorumSigningRequestId(sha256d::Hash);
+        #[ferment_macro::export]
+        pub struct QuorumSigningRequestId(pub sha256d::Hash);
         /// ProTxHash is a pro-tx hash
         #[hash_newtype(forward)]
         pub struct ProTxHash(sha256d::Hash);

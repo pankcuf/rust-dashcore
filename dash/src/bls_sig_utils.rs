@@ -28,7 +28,7 @@ use crate::prelude::String;
 #[rustversion::attr(since(1.48), derive(PartialEq, Eq, Ord, PartialOrd, Hash))]
 #[derive(Clone, Copy, Debug)]
 #[ferment_macro::export]
-pub struct BLSPublicKey([u8; 48]);
+pub struct BLSPublicKey(pub [u8; 48]);
 
 impl_array_newtype!(BLSPublicKey, u8, 48);
 
@@ -62,7 +62,7 @@ impl fmt::Display for BLSPublicKey {
 #[rustversion::attr(since(1.48), derive(PartialEq, Eq, Ord, PartialOrd, Hash))]
 #[derive(Clone, Copy)]
 #[ferment_macro::export]
-pub struct BLSSignature([u8; 96]);
+pub struct BLSSignature(pub [u8; 96]);
 
 impl_array_newtype!(BLSSignature, u8, 96);
 impl_bytes_newtype!(BLSSignature, 96);
