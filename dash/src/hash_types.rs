@@ -82,7 +82,8 @@ mod newtypes {
         /// A dash block hash.
         pub struct BlockHash(hash_x11::Hash);
         /// CycleHash is a cycle hash
-        pub struct CycleHash(hash_x11::Hash);
+        #[ferment_macro::export]
+        pub struct CycleHash(pub hash_x11::Hash);
     }
     #[cfg(not(feature = "core-block-hash-use-x11"))]
     hash_newtype! {
