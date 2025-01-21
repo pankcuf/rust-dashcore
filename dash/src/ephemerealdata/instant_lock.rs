@@ -10,11 +10,12 @@ use core::fmt::{Debug, Formatter};
 
 use hashes::{Hash, HashEngine};
 
+use crate::blockdata::transaction::outpoint::OutPoint;
 use crate::bls_sig_utils::BLSSignature;
-use crate::consensus::Encodable;
-use crate::hash_types::{CycleHash, QuorumSigningRequestId};
+use crate::consensus::{Encodable, encode::VarInt};
+use crate::hash_types::{CycleHash, QuorumSigningRequestId, Txid};
 use crate::internal_macros::impl_consensus_encoding;
-use crate::{OutPoint, Txid, VarInt, io};
+use crate::io;
 
 const IS_LOCK_REQUEST_ID_PREFIX: &str = "islock";
 
