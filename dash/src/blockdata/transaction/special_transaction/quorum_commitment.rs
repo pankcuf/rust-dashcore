@@ -35,6 +35,7 @@ use crate::{VarInt, io};
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
+#[ferment_macro::export]
 pub struct QuorumFinalizationCommitment {
     pub version: u16,
     pub llmq_type: u8,
@@ -125,6 +126,7 @@ impl Decodable for QuorumFinalizationCommitment {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
+#[ferment_macro::export]
 pub struct QuorumCommitmentPayload {
     version: u16,
     height: u32,

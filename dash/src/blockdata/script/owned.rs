@@ -26,6 +26,7 @@ use crate::taproot::TapNodeHash;
 ///
 /// [deref coercions]: https://doc.rust-lang.org/std/ops/trait.Deref.html#more-on-deref-coercion
 #[derive(Default, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[ferment_macro::export]
 pub struct ScriptBuf(pub Vec<u8>);
 
 impl ScriptBuf {

@@ -94,6 +94,7 @@ mod newtypes {
 
     hash_newtype! {
         /// A dash transaction hash/transaction ID.
+        #[ferment_macro::export]
         pub struct Txid(sha256d::Hash);
 
         /// A dash witness transaction ID.
@@ -103,6 +104,7 @@ mod newtypes {
 
 
         /// A hash of a public key.
+        #[ferment_macro::export]
         pub struct PubkeyHash(hash160::Hash);
         /// A hash of Dash Script bytecode.
         pub struct ScriptHash(hash160::Hash);
@@ -128,17 +130,23 @@ mod newtypes {
         /// Dash Additions
         ///
         /// The merkle root of the masternode list
+        #[ferment_macro::export]
         pub struct MerkleRootMasternodeList(sha256d::Hash);
         /// The merkle root of the quorums
+        #[ferment_macro::export]
         pub struct MerkleRootQuorums(sha256d::Hash);
         /// A special transaction payload hash
+        #[ferment_macro::export]
         pub struct SpecialTransactionPayloadHash(sha256d::Hash);
         /// A hash of all transaction inputs
+        #[ferment_macro::export]
         pub struct InputsHash(sha256d::Hash);
         /// A hash used to identify a quorum
         #[hash_newtype(forward)]
+        #[ferment_macro::export]
         pub struct QuorumHash(sha256d::Hash);
         /// A hash of a quorum verification vector
+        #[ferment_macro::export]
         pub struct QuorumVVecHash(sha256d::Hash);
         /// A hash of a quorum signing request id
         pub struct QuorumSigningRequestId(sha256d::Hash);

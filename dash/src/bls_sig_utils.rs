@@ -27,6 +27,7 @@ use crate::prelude::String;
 /// A BLS Public key is 48 bytes in the scheme used for Dash Core
 #[rustversion::attr(since(1.48), derive(PartialEq, Eq, Ord, PartialOrd, Hash))]
 #[derive(Clone, Copy, Debug)]
+#[ferment_macro::export]
 pub struct BLSPublicKey([u8; 48]);
 
 impl_array_newtype!(BLSPublicKey, u8, 48);
@@ -60,6 +61,7 @@ impl fmt::Display for BLSPublicKey {
 /// A BLS Signature is 96 bytes in the scheme used for Dash Core
 #[rustversion::attr(since(1.48), derive(PartialEq, Eq, Ord, PartialOrd, Hash))]
 #[derive(Clone, Copy)]
+#[ferment_macro::export]
 pub struct BLSSignature([u8; 96]);
 
 impl_array_newtype!(BLSSignature, u8, 96);

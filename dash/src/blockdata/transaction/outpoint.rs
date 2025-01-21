@@ -32,6 +32,7 @@ use crate::io;
 
 /// A reference to a transaction output.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[ferment_macro::export]
 pub struct OutPoint {
     /// The referenced transaction's txid.
     pub txid: Txid,

@@ -419,6 +419,7 @@ dependencies = [
  "dashcore-private",
  "dashcore_hashes",
  "ed25519-dalek",
+ "ferment-macro",
  "hex",
  "hex_lit",
  "lazy_static",
@@ -543,6 +544,15 @@ dependencies = [
  "multiexp",
  "serde",
  "zeroize",
+]
+
+[[package]]
+name = "ferment-macro"
+version = "0.1.4"
+source = "git+https://github.com/dashpay/ferment?branch=feat%2Flifetime-support#37a2aba1c6dfb8b860d684b9f03093cdd476b740"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]

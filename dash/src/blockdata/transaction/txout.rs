@@ -27,6 +27,7 @@ use crate::{Address, PubkeyHash, ScriptBuf, ScriptHash, VarInt};
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
+#[ferment_macro::export]
 pub struct TxOut {
     /// The value of the output, in satoshis.
     pub value: u64,

@@ -49,6 +49,7 @@ use crate::{ScriptBuf, VarInt, io};
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
+#[ferment_macro::export]
 pub struct ProviderUpdateServicePayload {
     pub version: u16,
     pub pro_tx_hash: Txid,
