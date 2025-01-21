@@ -5,8 +5,8 @@
 #[cfg(all(not(feature = "std"), not(test)))]
 use alloc::vec::Vec;
 use core::fmt::{Debug, Formatter};
-#[cfg(any(feature = "std", test))]
-pub use std::vec::Vec;
+// #[cfg(any(feature = "std", test))]
+// pub use std::vec::Vec;
 
 use hashes::{Hash, HashEngine};
 
