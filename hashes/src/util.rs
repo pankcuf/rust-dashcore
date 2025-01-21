@@ -195,7 +195,7 @@ macro_rules! hash_newtype {
         $($crate::hash_newtype_known_attrs!(#[ $($type_attrs)* ]);)*
 
         $crate::hash_newtype_struct! {
-            $type_vis struct $newtype($(#[$field_attrs])* $field_vis $hash);
+            #[ferment_macro::export] $type_vis struct $newtype($(#[$field_attrs])* $field_vis $hash);
 
             $({ $($type_attrs)* })*
         }

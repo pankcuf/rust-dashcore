@@ -82,7 +82,6 @@ mod newtypes {
         /// A dash block hash.
         pub struct BlockHash(hash_x11::Hash);
         /// CycleHash is a cycle hash
-        #[ferment_macro::export]
         pub struct CycleHash(pub hash_x11::Hash);
     }
     #[cfg(not(feature = "core-block-hash-use-x11"))]
@@ -95,7 +94,6 @@ mod newtypes {
 
     hash_newtype! {
         /// A dash transaction hash/transaction ID.
-        #[ferment_macro::export]
         pub struct Txid(pub sha256d::Hash);
 
         /// A dash witness transaction ID.
@@ -105,7 +103,6 @@ mod newtypes {
 
 
         /// A hash of a public key.
-        #[ferment_macro::export]
         pub struct PubkeyHash(pub hash160::Hash);
         /// A hash of Dash Script bytecode.
         pub struct ScriptHash(hash160::Hash);
@@ -131,26 +128,19 @@ mod newtypes {
         /// Dash Additions
         ///
         /// The merkle root of the masternode list
-        #[ferment_macro::export]
         pub struct MerkleRootMasternodeList(pub sha256d::Hash);
         /// The merkle root of the quorums
-        #[ferment_macro::export]
         pub struct MerkleRootQuorums(pub sha256d::Hash);
         /// A special transaction payload hash
-        #[ferment_macro::export]
         pub struct SpecialTransactionPayloadHash(pub sha256d::Hash);
         /// A hash of all transaction inputs
-        #[ferment_macro::export]
         pub struct InputsHash(pub sha256d::Hash);
         /// A hash used to identify a quorum
         #[hash_newtype(forward)]
-        #[ferment_macro::export]
         pub struct QuorumHash(pub sha256d::Hash);
         /// A hash of a quorum verification vector
-        #[ferment_macro::export]
         pub struct QuorumVVecHash(pub sha256d::Hash);
         /// A hash of a quorum signing request id
-        #[ferment_macro::export]
         pub struct QuorumSigningRequestId(pub sha256d::Hash);
         /// ProTxHash is a pro-tx hash
         #[hash_newtype(forward)]
