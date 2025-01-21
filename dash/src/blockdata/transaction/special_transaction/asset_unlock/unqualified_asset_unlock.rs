@@ -27,7 +27,7 @@ use crate::blockdata::transaction::special_transaction::TransactionType::AssetUn
 use crate::consensus::{Decodable, Encodable, encode};
 use crate::hash_types::{PubkeyHash, ScriptHash};
 use crate::prelude::*;
-use crate::blockdata::transaction::TxOut;
+use crate::blockdata::transaction::txout::TxOut;
 use crate::{ScriptBuf, TxIn, VarInt, io};
 
 /// An Asset Unlock Base payload. This is the base payload of the Asset Unlock. In order to make
