@@ -2,8 +2,8 @@
 //! confirm transaction within 1 or 2 seconds. This data structure
 //! represents a p2p message containing a data to verify such a lock.
 
-#[cfg(all(not(feature = "std"), not(test)))]
-use alloc::vec::Vec;
+// #[cfg(all(not(feature = "std"), not(test)))]
+// use alloc::vec::Vec;
 use core::fmt::{Debug, Formatter};
 // #[cfg(any(feature = "std", test))]
 // pub use std::vec::Vec;
