@@ -203,11 +203,9 @@ macro_rules! hash_type {
         #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         #[cfg_attr(feature = "schemars", derive(crate::schemars::JsonSchema))]
         #[repr(transparent)]
-        #[ferment_macro::export]
         pub struct Hash(
             #[cfg_attr(feature = "schemars", schemars(schema_with = $schemars))] pub [u8; $bits / 8],
         );
-
         impl Hash {
             fn internal_new(arr: [u8; $bits / 8]) -> Self { Hash(arr) }
 

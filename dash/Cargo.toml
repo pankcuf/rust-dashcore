@@ -66,6 +66,7 @@ serde_repr = "0.1.19"
 strum = { version = "0.26", features = ["derive"] }
 lazy_static = "1.5.0"
 ed25519-dalek = { version = "2.1", features = ["rand_core"], optional = true }
+ferment = { git = "https://github.com/dashpay/ferment", branch = "feat/lifetime-support", package = "ferment" }
 ferment-macro = { git = "https://github.com/dashpay/ferment", branch = "feat/lifetime-support", package = "ferment-macro" }
 
 [dev-dependencies]

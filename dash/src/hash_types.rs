@@ -82,7 +82,7 @@ mod newtypes {
         /// A dash block hash.
         pub struct BlockHash(hash_x11::Hash);
         /// CycleHash is a cycle hash
-        pub struct CycleHash(pub hash_x11::Hash);
+        pub struct CycleHash(hash_x11::Hash);
     }
     #[cfg(not(feature = "core-block-hash-use-x11"))]
     hash_newtype! {
@@ -94,7 +94,7 @@ mod newtypes {
 
     hash_newtype! {
         /// A dash transaction hash/transaction ID.
-        pub struct Txid(pub sha256d::Hash);
+        pub struct Txid(sha256d::Hash);
 
         /// A dash witness transaction ID.
         pub struct Wtxid(sha256d::Hash);
@@ -103,7 +103,7 @@ mod newtypes {
 
 
         /// A hash of a public key.
-        pub struct PubkeyHash(pub hash160::Hash);
+        pub struct PubkeyHash(hash160::Hash);
         /// A hash of Dash Script bytecode.
         pub struct ScriptHash(hash160::Hash);
         /// SegWit version of a public key hash.
@@ -128,13 +128,13 @@ mod newtypes {
         /// Dash Additions
         ///
         /// The merkle root of the masternode list
-        pub struct MerkleRootMasternodeList(pub sha256d::Hash);
+        pub struct MerkleRootMasternodeList(sha256d::Hash);
         /// The merkle root of the quorums
-        pub struct MerkleRootQuorums(pub sha256d::Hash);
+        pub struct MerkleRootQuorums(sha256d::Hash);
         /// A special transaction payload hash
-        pub struct SpecialTransactionPayloadHash(pub sha256d::Hash);
+        pub struct SpecialTransactionPayloadHash(sha256d::Hash);
         /// A hash of all transaction inputs
-        pub struct InputsHash(pub sha256d::Hash);
+        pub struct InputsHash(sha256d::Hash);
         /// A hash used to identify a quorum
         #[hash_newtype(forward)]
         pub struct QuorumHash(pub sha256d::Hash);
