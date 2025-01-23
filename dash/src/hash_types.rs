@@ -137,11 +137,11 @@ mod newtypes {
         pub struct InputsHash(sha256d::Hash);
         /// A hash used to identify a quorum
         #[hash_newtype(forward)]
-        pub struct QuorumHash(pub sha256d::Hash);
+        pub struct QuorumHash(sha256d::Hash);
         /// A hash of a quorum verification vector
-        pub struct QuorumVVecHash(pub sha256d::Hash);
+        pub struct QuorumVVecHash(sha256d::Hash);
         /// A hash of a quorum signing request id
-        pub struct QuorumSigningRequestId(pub sha256d::Hash);
+        pub struct QuorumSigningRequestId(sha256d::Hash);
         /// ProTxHash is a pro-tx hash
         #[hash_newtype(forward)]
         pub struct ProTxHash(sha256d::Hash);
