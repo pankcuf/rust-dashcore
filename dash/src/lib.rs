@@ -119,6 +119,7 @@ pub mod pow;
 pub mod psbt;
 pub mod sign_message;
 pub mod signer;
+pub mod sml;
 pub mod string;
 pub mod taproot;
 pub mod util;
