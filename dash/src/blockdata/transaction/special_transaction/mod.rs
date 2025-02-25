@@ -23,6 +23,9 @@
 use core::convert::TryFrom;
 use core::fmt::{Debug, Display, Formatter};
 
+#[cfg(feature = "bincode")]
+use bincode::{Decode, Encode};
+
 use crate::blockdata::transaction::special_transaction::TransactionPayload::{
     AssetLockPayloadType, AssetUnlockPayloadType, CoinbasePayloadType,
     ProviderRegistrationPayloadType, ProviderUpdateRegistrarPayloadType,
@@ -58,6 +61,7 @@ pub mod quorum_commitment;
 /// An enum wrapper around various special transaction payloads.
 /// Special transactions are defined in DIP 2.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[ferment_macro::export]

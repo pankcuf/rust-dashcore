@@ -1,6 +1,6 @@
 [package]
 name = "dashcore"
-version = "0.35.0"
+version = "0.36.0"
 authors = [
     "Samuel Westrich <sam@dash.org>",
     "Anton Suprunchuk <anton@dash.org>",
@@ -19,7 +19,7 @@ edition = "2021"
 
 # Please don't forget to add relevant features to docs.rs below
 [features]
-default = [ "std", "secp-recovery", "core-block-hash-use-x11" ]
+default = [ "std", "secp-recovery", "bincode", "quorum_validation" ]
 base64 = [ "base64-compat" ]
 rand-std = ["secp256k1/rand"]
 rand = ["secp256k1/rand"]
@@ -30,6 +30,8 @@ signer = ["secp-recovery", "rand"]
 core-block-hash-use-x11 = ["dashcore_hashes/x11"]
 bls = ["blsful"]
 eddsa = ["ed25519-dalek"]
+quorum_validation = ["bls"]
+bincode = [ "dep:bincode", "dashcore_hashes/bincode" ]
 
 # At least one of std, no-std must be enabled.
 #
@@ -61,11 +63,14 @@ anyhow = { version= "1.0" }
 hex = { version= "0.4" }
 bincode = { version= "2.0.0-rc.3", optional = true }
 bitflags = "2.6.0"
-blsful = { version = "3.0.0-pre8", optional = true }
+blsful = { version = "3.0.0-pre6", optional = true }
 serde_repr = "0.1.19"
 strum = { version = "0.26", features = ["derive"] }
 lazy_static = "1.5.0"
 ed25519-dalek = { version = "2.1", features = ["rand_core"], optional = true }
+blake3 = "1.5"
+thiserror = "1"
+bls-signatures = { git = "https://github.com/dashpay/bls-signatures", branch = "develop" }
 ferment = { git = "https://github.com/dashpay/ferment", branch = "feat/lifetime-support", package = "ferment" }
 ferment-macro = { git = "https://github.com/dashpay/ferment", branch = "feat/lifetime-support", package = "ferment-macro" }
 
@@ -76,6 +81,7 @@ serde_derive = "1.0.103"
 secp256k1 = { features = [ "recovery", "rand", "hashes" ], version="0.30.0" }
 bip39 = "2.0.0"
 bincode_test = {package = "bincode", version= "1.3.3" }
+assert_matches = "1.5.0"
 
 [[example]]
 name = "bip32"

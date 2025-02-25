@@ -4,6 +4,8 @@
 #[cfg(doc)]
 use core::ops::Deref;
 
+#[cfg(feature = "bincode")]
+use bincode::{Decode, Encode};
 use hashes::hex;
 use secp256k1::{Secp256k1, Verification};
 
@@ -26,6 +28,7 @@ use crate::taproot::TapNodeHash;
 ///
 /// [deref coercions]: https://doc.rust-lang.org/std/ops/trait.Deref.html#more-on-deref-coercion
 #[derive(Default, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[ferment_macro::export]
 pub struct ScriptBuf(pub Vec<u8>);
 

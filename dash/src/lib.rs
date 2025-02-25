@@ -119,6 +119,7 @@ pub mod pow;
 pub mod psbt;
 pub mod sign_message;
 pub mod signer;
+pub mod sml;
 pub mod string;
 pub mod taproot;
 pub mod util;
@@ -207,6 +208,8 @@ mod prelude {
     pub use crate::io_extras::sink;
 
     pub use internals::hex::display::DisplayHex;
+
+    pub type CoreBlockHeight = u32;
 }
 
 #[cfg(bench)]

@@ -9,6 +9,7 @@ use dashcore::consensus::{Decodable, encode};
 use dashcore::network::{address, constants, message, message_network};
 use dashcore::secp256k1;
 use dashcore::secp256k1::rand::Rng;
+use secp256k1::rand;
 
 fn main() {
     // This example establishes a connection to a Bitcoin node, sends the intial
@@ -97,6 +98,9 @@ fn build_version_message(address: SocketAddr) -> message::NetworkMessage {
     // "The last block received by the emitting node"
     let start_height: i32 = 0;
 
+    // Generate challenge for masternode authentication
+    let mn_auth_challenge = rand::random();
+
     // Construct the message
     message::NetworkMessage::Version(message_network::VersionMessage::new(
         services,
@@ -106,5 +110,6 @@ fn build_version_message(address: SocketAddr) -> message::NetworkMessage {
         nonce,
         user_agent,
         start_height,
+        mn_auth_challenge,
     ))
 }

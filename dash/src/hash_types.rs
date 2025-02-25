@@ -71,7 +71,8 @@ mod newtypes {
     use crate::alloc::string::ToString;
 
     use core::str::FromStr;
-    use hashes::{sha256, sha256d, hash160, hash_newtype};
+use std::cmp::Ordering;
+use hashes::{sha256, sha256d, hash160, hash_newtype, Hash, hash_newtype_no_ord};
     use hashes::hex::Error;
     use crate::prelude::String;
     #[cfg(feature = "core-block-hash-use-x11")]
@@ -99,9 +100,6 @@ mod newtypes {
         /// A dash witness transaction ID.
         pub struct Wtxid(sha256d::Hash);
 
-
-
-
         /// A hash of a public key.
         pub struct PubkeyHash(hash160::Hash);
         /// A hash of Dash Script bytecode.
@@ -128,16 +126,15 @@ mod newtypes {
         /// Dash Additions
         ///
         /// The merkle root of the masternode list
+        #[hash_newtype(forward)]
         pub struct MerkleRootMasternodeList(sha256d::Hash);
         /// The merkle root of the quorums
+        #[hash_newtype(forward)]
         pub struct MerkleRootQuorums(sha256d::Hash);
         /// A special transaction payload hash
         pub struct SpecialTransactionPayloadHash(sha256d::Hash);
         /// A hash of all transaction inputs
         pub struct InputsHash(sha256d::Hash);
-        /// A hash used to identify a quorum
-        #[hash_newtype(forward)]
-        pub struct QuorumHash(sha256d::Hash);
         /// A hash of a quorum verification vector
         pub struct QuorumVVecHash(sha256d::Hash);
         /// A hash of a quorum signing request id
@@ -145,7 +142,41 @@ mod newtypes {
         /// ProTxHash is a pro-tx hash
         #[hash_newtype(forward)]
         pub struct ProTxHash(sha256d::Hash);
+        pub struct ConfirmedHash(sha256d::Hash);
+        pub struct ConfirmedHashHashedWithProRegTx(sha256::Hash);
+        pub struct QuorumModifierHash(sha256d::Hash);
+        pub struct QuorumEntryHash(sha256d::Hash);
+        pub struct QuorumCommitmentHash(sha256d::Hash);
+
+        pub struct Sha256dHash(sha256d::Hash);
+
     }
+
+        hash_newtype_no_ord! {
+            pub struct ScoreHash(sha256::Hash);
+        }
+
+impl Ord for ScoreHash {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let mut self_bytes = self.0.to_byte_array();
+        let mut other_bytes = other.0.to_byte_array();
+
+        self_bytes.reverse();
+        other_bytes.reverse();
+
+        self_bytes.cmp(&other_bytes)
+    }
+}
+
+impl PartialOrd for ScoreHash {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+
+    /// A hash used to identify a quorum
+    pub type QuorumHash = BlockHash;
 
     impl_hashencode!(Txid);
     impl_hashencode!(Wtxid);
@@ -163,11 +194,19 @@ mod newtypes {
     impl_hashencode!(SpecialTransactionPayloadHash);
     impl_hashencode!(InputsHash);
 
-    impl_hashencode!(QuorumHash);
     impl_hashencode!(QuorumVVecHash);
     impl_hashencode!(QuorumSigningRequestId);
     impl_hashencode!(PubkeyHash);
     impl_hashencode!(CycleHash);
+
+    impl_hashencode!(ConfirmedHash);
+    impl_hashencode!(ConfirmedHashHashedWithProRegTx);
+    impl_hashencode!(QuorumModifierHash);
+    impl_hashencode!(QuorumEntryHash);
+    impl_hashencode!(QuorumCommitmentHash);
+    impl_hashencode!(ScoreHash);
+    impl_hashencode!(ProTxHash);
+    impl_hashencode!(Sha256dHash);
 
     impl_asref_push_bytes!(PubkeyHash, ScriptHash, WPubkeyHash, WScriptHash);
 
@@ -184,12 +223,96 @@ mod newtypes {
     }
 
     impl ProTxHash {
-        /// Create a Txid from a string
+        /// Create a ProTxHash from a string
         pub fn from_hex(s: &str) -> Result<ProTxHash, Error> {
             Ok(Self(sha256d::Hash::from_str(s)?))
         }
 
-        /// Convert a Txid to a string
+        /// Convert a ProTxHash to a string
+        pub fn to_hex(&self) -> String {
+            self.0.to_string()
+        }
+    }
+
+        impl ScoreHash {
+        /// Create a ScoreHash from a string
+        pub fn from_hex(s: &str) -> Result<ScoreHash, Error> {
+            Ok(Self(sha256::Hash::from_str(s)?))
+        }
+
+        /// Convert a ScoreHash to a string
+        pub fn to_hex(&self) -> String {
+            self.0.to_string()
+        }
+
+        /// Creates a score based on the optional confirmed hash and the quorum modifier.
+        ///
+        /// # Arguments
+        /// * `confirmed_hash_hashed_with_pro_reg_tx` - An optional hash combining the confirmed hash and ProRegTx.
+        /// * `modifier` - A quorum modifier hash used in the calculation.
+        ///
+        /// # Returns
+        /// * A hashed score derived from the input values.
+        pub fn create_score(confirmed_hash_hashed_with_pro_reg_tx: Option<ConfirmedHashHashedWithProRegTx>, modifier: QuorumModifierHash) -> Self {
+            let mut bytes = vec![];
+            if let Some(confirmed_hash_hashed_with_pro_reg_tx) = confirmed_hash_hashed_with_pro_reg_tx{
+                bytes.append(&mut confirmed_hash_hashed_with_pro_reg_tx.to_byte_array().to_vec());
+            }
+            bytes.append(&mut modifier.to_byte_array().to_vec());
+            Self::hash(bytes.as_slice())
+        }
+    }
+
+    impl Default for ConfirmedHash {
+    fn default() -> Self {
+        ConfirmedHash::from_byte_array([0;32])
+    }
+
+    }
+
+    impl ConfirmedHash {
+        /// Create a ConfirmedHash from a string
+        pub fn from_hex(s: &str) -> Result<ConfirmedHash, Error> {
+            Ok(Self(sha256d::Hash::from_str(s)?))
+        }
+
+        /// Convert a ConfirmedHash to a string
+        pub fn to_hex(&self) -> String {
+            self.0.to_string()
+        }
+    }
+
+    impl ConfirmedHashHashedWithProRegTx {
+            /// Create a ConfirmedHash from a string
+        pub fn from_hex(s: &str) -> Result<ConfirmedHashHashedWithProRegTx, Error> {
+            Ok(Self(sha256::Hash::from_str(s)?))
+        }
+
+        /// Convert a ConfirmedHash to a string
+        pub fn to_hex(&self) -> String {
+            self.0.to_string()
+        }
+
+        /// Hashes the members
+        pub fn hash_members(pro_tx_hash: &ProTxHash, confirmed_hash: &ConfirmedHash) -> Self {
+            Self::hash(&[pro_tx_hash.to_byte_array(), confirmed_hash.to_byte_array()].concat())
+        }
+            /// Hashes the members
+        pub fn hash_members_confirmed_hash_optional(pro_tx_hash: &ProTxHash, confirmed_hash: Option<&ConfirmedHash>) -> Option<Self> {
+                confirmed_hash.map(|confirmed_hash| {
+                   Self::hash(&[pro_tx_hash.to_byte_array(), confirmed_hash.to_byte_array()].concat())
+                })
+
+        }
+    }
+
+    impl Sha256dHash {
+        /// Create a Sha256dHash from a string
+        pub fn from_hex(s: &str) -> Result<Sha256dHash, Error> {
+            Ok(Self(sha256d::Hash::from_str(s)?))
+        }
+
+        /// Convert a ConfirmedHash to a string
         pub fn to_hex(&self) -> String {
             self.0.to_string()
         }

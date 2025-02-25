@@ -17,7 +17,8 @@
 //! It is defined in DIP6 [dip-0006.md](https://github.com/dashpay/dips/blob/master/dip-0006.md).
 //!
 
-use std::io::{Read, Write};
+#[cfg(feature = "bincode")]
+use bincode::{Decode, Encode};
 
 use crate::bls_sig_utils::{BLSPublicKey, BLSSignature};
 use crate::consensus::encode::{
@@ -26,8 +27,10 @@ use crate::consensus::encode::{
 };
 use crate::consensus::{Decodable, Encodable, encode};
 use crate::hash_types::{QuorumHash, QuorumVVecHash};
+use crate::io;
 use crate::prelude::*;
-use crate::{VarInt, io};
+use crate::sml::llmq_type::LLMQType;
+use crate::sml::quorum_validation_error::QuorumValidationError;
 
 /// A Quorum Finalization Commitment. It is described in the finalization section of DIP6:
 /// [dip-0006.md#6-finalization-phase](https://github.com/dashpay/dips/blob/master/dip-0006.md#6-finalization-phase)
@@ -35,21 +38,22 @@ use crate::{VarInt, io};
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[ferment_macro::export]
-pub struct QuorumFinalizationCommitment {
+pub struct QuorumEntry {
     pub version: u16,
-    pub llmq_type: u8,
+    pub llmq_type: LLMQType,
     pub quorum_hash: QuorumHash,
     pub quorum_index: Option<i16>,
     pub signers: Vec<bool>,
     pub valid_members: Vec<bool>,
     pub quorum_public_key: BLSPublicKey,
     pub quorum_vvec_hash: QuorumVVecHash,
-    pub quorum_sig: BLSSignature,
-    pub sig: BLSSignature,
+    pub threshold_sig: BLSSignature,
+    pub all_commitment_aggregated_signature: BLSSignature,
 }
 
-impl QuorumFinalizationCommitment {
+impl QuorumEntry {
     /// The size of the payload in bytes.
     pub fn size(&self) -> usize {
         let mut size = 2 + 1 + 32 + 48 + 32 + 96 + 96;
@@ -62,9 +66,59 @@ impl QuorumFinalizationCommitment {
         }
         size
     }
+
+    pub fn validate_structure(&self) -> Result<(), QuorumValidationError> {
+        let quorum_threshold = self.llmq_type.threshold() as u64;
+
+        // Count set bits in signers and valid_members bitvectors
+        let signers_bitset_true_bits_count = self.signers.iter().filter(|&&b| b).count() as u64;
+        let valid_members_bitset_true_bits_count =
+            self.valid_members.iter().filter(|&&b| b).count() as u64;
+
+        // Ensure signers meet the quorum threshold
+        if signers_bitset_true_bits_count < quorum_threshold {
+            return Err(QuorumValidationError::InsufficientSigners {
+                required: quorum_threshold,
+                found: signers_bitset_true_bits_count,
+            });
+        }
+
+        // Ensure valid members meet the quorum threshold
+        if valid_members_bitset_true_bits_count < quorum_threshold {
+            return Err(QuorumValidationError::InsufficientValidMembers {
+                required: quorum_threshold,
+                found: valid_members_bitset_true_bits_count,
+            });
+        }
+
+        // Ensure bitsets have the same length
+        if self.signers.len() != self.valid_members.len() {
+            return Err(QuorumValidationError::MismatchedBitsetLengths {
+                signers_len: self.signers.len(),
+                valid_members_len: self.valid_members.len(),
+            });
+        }
+
+        // Ensure quorum public key is valid (not zeroed)
+        if self.quorum_public_key.is_zeroed() {
+            return Err(QuorumValidationError::InvalidQuorumPublicKey);
+        }
+
+        // Validate quorum signature (not zeroed)
+        if self.threshold_sig.is_zeroed() {
+            return Err(QuorumValidationError::InvalidQuorumSignature);
+        }
+
+        // Validate final signature (not zeroed)
+        if self.all_commitment_aggregated_signature.is_zeroed() {
+            return Err(QuorumValidationError::InvalidFinalSignature);
+        }
+
+        Ok(())
+    }
 }
 
-impl Encodable for QuorumFinalizationCommitment {
+impl Encodable for QuorumEntry {
     fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         let mut len = 0;
         len += self.version.consensus_encode(w)?;
@@ -82,16 +136,16 @@ impl Encodable for QuorumFinalizationCommitment {
             write_fixed_bitset(w, self.valid_members.as_slice(), self.valid_members.iter().len())?;
         len += self.quorum_public_key.consensus_encode(w)?;
         len += self.quorum_vvec_hash.consensus_encode(w)?;
-        len += self.quorum_sig.consensus_encode(w)?;
-        len += self.sig.consensus_encode(w)?;
+        len += self.threshold_sig.consensus_encode(w)?;
+        len += self.all_commitment_aggregated_signature.consensus_encode(w)?;
         Ok(len)
     }
 }
 
-impl Decodable for QuorumFinalizationCommitment {
+impl Decodable for QuorumEntry {
     fn consensus_decode<R: io::Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         let version = u16::consensus_decode(r)?;
-        let llmq_type = u8::consensus_decode(r)?;
+        let llmq_type = LLMQType::consensus_decode(r)?;
         let quorum_hash = QuorumHash::consensus_decode(r)?;
         let quorum_index =
             if version == 2 || version == 4 { Some(i16::consensus_decode(r)?) } else { None };
@@ -103,7 +157,7 @@ impl Decodable for QuorumFinalizationCommitment {
         let quorum_vvec_hash = QuorumVVecHash::consensus_decode(r)?;
         let quorum_sig = BLSSignature::consensus_decode(r)?;
         let sig = BLSSignature::consensus_decode(r)?;
-        Ok(QuorumFinalizationCommitment {
+        Ok(QuorumEntry {
             version,
             llmq_type,
             quorum_hash,
@@ -112,8 +166,8 @@ impl Decodable for QuorumFinalizationCommitment {
             valid_members,
             quorum_public_key,
             quorum_vvec_hash,
-            quorum_sig,
-            sig,
+            threshold_sig: quorum_sig,
+            all_commitment_aggregated_signature: sig,
         })
     }
 }
@@ -124,13 +178,14 @@ impl Decodable for QuorumFinalizationCommitment {
 ///
 /// Miners take the best final commitment for a DKG session and mine it into a block.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[ferment_macro::export]
 pub struct QuorumCommitmentPayload {
     pub version: u16,
     pub height: u32,
-    pub finalization_commitment: QuorumFinalizationCommitment,
+    pub finalization_commitment: QuorumEntry,
 }
 
 impl QuorumCommitmentPayload {
@@ -152,7 +207,7 @@ impl Decodable for QuorumCommitmentPayload {
     fn consensus_decode<R: io::Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
         let version = u16::consensus_decode(r)?;
         let height = u32::consensus_decode(r)?;
-        let finalization_commitment = QuorumFinalizationCommitment::consensus_decode(r)?;
+        let finalization_commitment = QuorumEntry::consensus_decode(r)?;
         Ok(QuorumCommitmentPayload { version, height, finalization_commitment })
     }
 }
@@ -162,10 +217,13 @@ mod tests {
     use hashes::Hash;
 
     use crate::bls_sig_utils::{BLSPublicKey, BLSSignature};
-    use crate::consensus::Encodable;
+    use crate::consensus::{Encodable, deserialize, serialize};
     use crate::hash_types::{QuorumHash, QuorumVVecHash};
+    use crate::network::message::{NetworkMessage, RawNetworkMessage};
+    use crate::network::message_sml::MnListDiff;
+    use crate::sml::llmq_type::LLMQType;
     use crate::transaction::special_transaction::quorum_commitment::{
-        QuorumCommitmentPayload, QuorumFinalizationCommitment,
+        QuorumCommitmentPayload, QuorumEntry,
     };
 
     #[test]
@@ -175,17 +233,17 @@ mod tests {
             let payload = QuorumCommitmentPayload {
                 version: 0,
                 height: 0,
-                finalization_commitment: QuorumFinalizationCommitment {
+                finalization_commitment: QuorumEntry {
                     version: 1,
-                    llmq_type: 0,
+                    llmq_type: LLMQType::LlmqtypeUnknown,
                     quorum_hash: QuorumHash::all_zeros(),
                     quorum_index: None,
                     signers: vec![true, false, true, true, false],
                     valid_members: vec![false, true, false, true],
                     quorum_public_key: BLSPublicKey::from([0; 48]),
                     quorum_vvec_hash: QuorumVVecHash::all_zeros(),
-                    quorum_sig: BLSSignature::from([0; 96]),
-                    sig: BLSSignature::from([0; 96]),
+                    threshold_sig: BLSSignature::from([0; 96]),
+                    all_commitment_aggregated_signature: BLSSignature::from([0; 96]),
                 },
             };
             let actual = payload.consensus_encode(&mut Vec::new()).unwrap();
@@ -197,22 +255,36 @@ mod tests {
             let payload = QuorumCommitmentPayload {
                 version: 0,
                 height: 0,
-                finalization_commitment: QuorumFinalizationCommitment {
+                finalization_commitment: QuorumEntry {
                     version: 2,
-                    llmq_type: 0,
+                    llmq_type: LLMQType::LlmqtypeUnknown,
                     quorum_hash: QuorumHash::all_zeros(),
                     quorum_index: Some(1),
                     signers: vec![true, false, true, true, false, true, false],
                     valid_members: vec![false, true, false, true, false, true],
                     quorum_public_key: BLSPublicKey::from([0; 48]),
                     quorum_vvec_hash: QuorumVVecHash::all_zeros(),
-                    quorum_sig: BLSSignature::from([0; 96]),
-                    sig: BLSSignature::from([0; 96]),
+                    threshold_sig: BLSSignature::from([0; 96]),
+                    all_commitment_aggregated_signature: BLSSignature::from([0; 96]),
                 },
             };
             let actual = payload.consensus_encode(&mut Vec::new()).unwrap();
             assert_eq!(payload.size(), want);
             assert_eq!(actual, want);
+        }
+    }
+
+    #[test]
+    fn deserialize_serialize_mn_list_diff() {
+        let block_hex = include_str!("../../../../tests/data/test_DML_diffs/DML_0_2221605.hex");
+        let data = hex::decode(block_hex).expect("decode hex");
+        let mn_list_diff: RawNetworkMessage = deserialize(&data).expect("deserialize MnListDiff");
+        if let NetworkMessage::MnListDiff(diff) = mn_list_diff.payload {
+            let quorum = diff.new_quorums.first().expect("expected a quorum");
+            let serialized = serialize(&quorum);
+            let deserialized: QuorumEntry =
+                deserialize(serialized.as_slice()).expect("expected to deserialize");
+            assert_eq!(quorum, &deserialized);
         }
     }
 }
