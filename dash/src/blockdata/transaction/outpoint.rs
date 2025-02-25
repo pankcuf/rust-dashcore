@@ -24,6 +24,8 @@ use core::fmt;
 #[cfg(feature = "std")]
 use std::error;
 
+#[cfg(feature = "bincode")]
+use bincode::{Decode, Encode};
 use hashes::{self, Hash};
 
 use crate::consensus::{Decodable, Encodable, deserialize, encode};
@@ -32,6 +34,7 @@ use crate::io;
 
 /// A reference to a transaction output.
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 pub struct OutPoint {
     /// The referenced transaction's txid.
     pub txid: Txid,

@@ -46,6 +46,8 @@ pub mod message_filter;
 #[cfg(feature = "std")]
 pub mod message_network;
 #[cfg(feature = "std")]
+pub mod message_qrinfo;
+#[cfg(feature = "std")]
 pub mod message_sml;
 
 /// Network error

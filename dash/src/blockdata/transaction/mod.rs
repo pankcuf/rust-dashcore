@@ -34,6 +34,8 @@ pub mod txout;
 
 use core::default::Default;
 
+#[cfg(feature = "bincode")]
+use bincode::{Decode, Encode};
 use hashes::{Hash, sha256d};
 
 use crate::blockdata::constants::WITNESS_SCALE_FACTOR;
@@ -158,6 +160,7 @@ impl<E> EncodeSigningDataResult<E> {
 /// We therefore deviate from the spec by always using the Segwit witness encoding
 /// for 0-input transactions, which results in unambiguously parseable transactions.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct Transaction {
@@ -911,6 +914,8 @@ mod tests {
     use crate::blockdata::constants::WITNESS_SCALE_FACTOR;
     use crate::consensus::encode::{deserialize, serialize};
     use crate::internal_macros::hex;
+    use crate::network::message::{NetworkMessage, RawNetworkMessage};
+    use crate::network::message_sml::MnListDiff;
 
     #[test]
     fn test_is_coinbase() {
@@ -1252,6 +1257,18 @@ mod tests {
 
         assert_eq!(data.len(), 20);
         assert_eq!(&data, &pk_data.as_slice());
+    }
+
+    #[test]
+    fn deserialize_serialize_coinbase_transaction_in_dml() {
+        let block_hex = include_str!("../../../tests/data/test_DML_diffs/DML_0_2221605.hex");
+        let data = hex::decode(block_hex).expect("decode hex");
+        let mn_list_diff: RawNetworkMessage = deserialize(&data).expect("deserialize MnListDiff");
+        if let NetworkMessage::MnListDiff(diff) = mn_list_diff.payload {
+            let serialized = serialize(&diff.coinbase_tx);
+            let deserialized: Transaction =
+                deserialize(serialized.as_slice()).expect("expected to deserialize");
+        }
     }
 }
 

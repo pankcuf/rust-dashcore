@@ -46,17 +46,18 @@ use crate::hash_types::{
     BlockHash, FilterHash, FilterHeader, MerkleRootMasternodeList, TxMerkleNode,
 };
 use crate::io::{self, Cursor, Read};
-use crate::network::message_sml::DeletedQuorum;
+use crate::network::message_qrinfo::QuorumSnapshot;
+use crate::network::message_sml::{DeletedQuorum, MnListDiff, QuorumCLSigObject};
 #[cfg(feature = "std")]
 use crate::network::{
     address::{AddrV2Message, Address},
     message_blockdata::Inventory,
 };
 use crate::prelude::*;
-use crate::sml::entry::MasternodeListEntry;
+use crate::sml::masternode_list_entry::MasternodeListEntry;
 use crate::taproot::TapLeafHash;
 use crate::transaction::special_transaction::TransactionType;
-use crate::transaction::special_transaction::quorum_commitment::QuorumFinalizationCommitment;
+use crate::transaction::special_transaction::quorum_commitment::QuorumEntry;
 use crate::transaction::txin::TxIn;
 use crate::transaction::txout::TxOut;
 use crate::{OutPoint, ProTxHash, ScriptBuf, address};
@@ -679,18 +680,23 @@ impl_vec!(Transaction);
 impl_vec!(TxOut);
 impl_vec!(TxIn);
 impl_vec!(Vec<u8>);
+impl_vec!(u16);
+impl_vec!(u32);
 impl_vec!(u64);
 impl_vec!(TapLeafHash);
 impl_vec!(VarInt);
 impl_vec!(ShortId);
 impl_vec!(OutPoint);
 impl_vec!(PrefilledTransaction);
-impl_vec!(QuorumFinalizationCommitment);
+impl_vec!(QuorumEntry);
+impl_vec!(QuorumCLSigObject);
 impl_vec!(DeletedQuorum);
 impl_vec!(BLSSignature);
 impl_vec!(ProTxHash);
 impl_vec!(MerkleRootMasternodeList);
 impl_vec!(MasternodeListEntry);
+impl_vec!(MnListDiff);
+impl_vec!(QuorumSnapshot);
 
 #[cfg(feature = "std")]
 impl_vec!(Inventory);

@@ -30,7 +30,7 @@ use crate::merkle_tree::MerkleBlock;
 use crate::network::address::{AddrV2Message, Address};
 use crate::network::{
     message_blockdata, message_bloom, message_compact_blocks, message_filter, message_network,
-    message_sml,
+    message_qrinfo, message_sml,
 };
 use crate::prelude::*;
 
@@ -241,6 +241,10 @@ pub enum NetworkMessage {
     GetMnListD(message_sml::GetMnListDiff),
     /// `mnlistdiff`
     MnListDiff(message_sml::MnListDiff),
+    /// `getqrinfo`
+    GetQRInfo(message_qrinfo::GetQRInfo),
+    /// `qrinfo`
+    QRInfo(message_qrinfo::QRInfo),
     /// Any other message.
     Unknown {
         /// The command of this message.
@@ -296,6 +300,8 @@ impl NetworkMessage {
             NetworkMessage::SendAddrV2 => "sendaddrv2",
             NetworkMessage::GetMnListD(_) => "getmnlistd",
             NetworkMessage::MnListDiff(_) => "mnlistdiff",
+            NetworkMessage::GetQRInfo(_) => "getqrinfo",
+            NetworkMessage::QRInfo(_) => "qrinfo",
             NetworkMessage::Unknown { .. } => "unknown",
         }
     }
@@ -381,6 +387,8 @@ impl Encodable for RawNetworkMessage {
             NetworkMessage::Unknown { payload: ref data, .. } => serialize(data),
             NetworkMessage::GetMnListD(ref dat) => serialize(dat),
             NetworkMessage::MnListDiff(ref dat) => serialize(dat),
+            NetworkMessage::GetQRInfo(ref dat) => serialize(dat),
+            NetworkMessage::QRInfo(ref dat) => serialize(dat),
         })
         .consensus_encode(w)?;
         Ok(len)
@@ -512,6 +520,11 @@ impl Decodable for RawNetworkMessage {
             "mnlistdiff" => NetworkMessage::MnListDiff(
                 Decodable::consensus_decode_from_finite_reader(&mut mem_d)?,
             ),
+            "getqrinfo" => NetworkMessage::GetQRInfo(
+                Decodable::consensus_decode_from_finite_reader(&mut mem_d)?,
+            ),
+            "qrinfo" =>
+                NetworkMessage::QRInfo(Decodable::consensus_decode_from_finite_reader(&mut mem_d)?),
             _ => NetworkMessage::Unknown { command: cmd, payload: mem_d.into_inner() },
         };
         Ok(RawNetworkMessage { magic, payload })

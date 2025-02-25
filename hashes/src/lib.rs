@@ -120,6 +120,7 @@ mod internal_macros;
 mod util;
 #[macro_use]
 pub mod serde_macros;
+mod bincode_macros;
 pub mod cmp;
 pub mod error;
 pub mod hash160;

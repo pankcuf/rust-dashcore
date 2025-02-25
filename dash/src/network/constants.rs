@@ -45,13 +45,16 @@ use core::fmt::Display;
 use core::str::FromStr;
 use core::{fmt, ops};
 
+#[cfg(feature = "bincode")]
+use bincode::{Decode, Encode};
+use hashes::Hash;
 use internals::write_err;
 
 use crate::consensus::encode::{self, Decodable, Encodable};
 use crate::constants::ChainHash;
 use crate::error::impl_std_error;
-use crate::io;
 use crate::prelude::{String, ToOwned};
+use crate::{BlockHash, io};
 
 /// Version of the protocol as appearing in network message headers
 /// This constant is used to signal to other peers which features you support.
@@ -76,6 +79,7 @@ pub const PROTOCOL_VERSION: u32 = 70220;
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 #[non_exhaustive]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 pub enum Network {
     /// Classic Dash Core Payment Chain
     Dash,
@@ -127,6 +131,47 @@ impl Network {
             Network::Testnet => 0xFFCAE2CE,
             Network::Devnet => 0xCEFFCAE2,
             Network::Regtest => 0xDAB5BFFA,
+        }
+    }
+
+    /// The known activation height of core v20
+    pub fn core_v20_activation_height(&self) -> u32 {
+        match self {
+            Network::Dash => 1987776,
+            Network::Testnet => 905100,
+            _ => 1, //todo: this might not be 1
+        }
+    }
+
+    /// Helper method to know if core v20 was active
+    pub fn core_v20_is_active_at(&self, core_block_height: u32) -> bool {
+        core_block_height >= self.core_v20_activation_height()
+    }
+
+    /// The known dash genesis block hash for mainnet and testnet
+    pub fn known_genesis_block_hash(&self) -> Option<BlockHash> {
+        match self {
+            Network::Dash => {
+                let mut block_hash =
+                    hex::decode("00000ffd590b1485b3caadc19b22e6379c733355108f107a430458cdf3407ab6")
+                        .expect("expected valid hex");
+                block_hash.reverse();
+                Some(BlockHash::from_byte_array(block_hash.try_into().expect("expected 32 bytes")))
+            }
+            Network::Testnet => {
+                let mut block_hash =
+                    hex::decode("00000bafbc94add76cb75e2ec92894837288a481e5c005f6563d91623bf8bc2c")
+                        .expect("expected valid hex");
+                block_hash.reverse();
+                Some(BlockHash::from_byte_array(
+                    hex::decode("00000bafbc94add76cb75e2ec92894837288a481e5c005f6563d91623bf8bc2c")
+                        .expect("expected valid hex")
+                        .try_into()
+                        .expect("expected 32 bytes"),
+                ))
+            }
+            Network::Devnet => None,
+            Network::Regtest => None,
         }
     }
 }

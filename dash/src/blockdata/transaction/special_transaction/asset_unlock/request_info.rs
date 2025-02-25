@@ -20,6 +20,9 @@
 
 use std::mem::size_of;
 
+#[cfg(feature = "bincode")]
+use bincode::{Decode, Encode};
+
 use crate::consensus::{Decodable, Encodable, encode};
 use crate::hash_types::QuorumHash;
 use crate::io;
@@ -29,6 +32,7 @@ use crate::prelude::*;
 /// This is the information about the signing quorum
 /// The request height should be the height at which the specified quorum is active on core.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct AssetUnlockRequestInfo {

@@ -1,11 +1,16 @@
-use hashes::sha256::Hash;
+use std::io;
+
+#[cfg(feature = "bincode")]
+use bincode::{Decode, Encode};
 
 use crate::bls_sig_utils::BLSSignature;
+use crate::consensus::{Decodable, Encodable, encode};
 use crate::hash_types::MerkleRootMasternodeList;
 use crate::internal_macros::impl_consensus_encoding;
-use crate::sml::entry::MasternodeListEntry;
-use crate::transaction::special_transaction::quorum_commitment::QuorumFinalizationCommitment;
-use crate::{BlockHash, ProTxHash, Transaction};
+use crate::sml::llmq_type::LLMQType;
+use crate::sml::masternode_list_entry::MasternodeListEntry;
+use crate::transaction::special_transaction::quorum_commitment::QuorumEntry;
+use crate::{BlockHash, ProTxHash, QuorumHash, Transaction};
 
 /// The `getmnlistd` message requests a `mnlistdiff` message that provides either:
 /// - A full masternode list (if `base_block_hash` is all-zero)
@@ -28,6 +33,9 @@ impl_consensus_encoding!(GetMnListDiff, base_block_hash, block_hash);
 ///
 /// https://docs.dash.org/en/stable/docs/core/reference/p2p-network-data-messages.html#mnlistdiff
 #[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct MnListDiff {
     /// Version of the message (currently 1).
     /// In protocol versions 70225 through 70228 this field was located between the `coinbase_tx` and `deleted_masternodes` fields.
@@ -51,32 +59,81 @@ pub struct MnListDiff {
     /// A list of LLMQ type and quorum hashes for LLMQs which were deleted after `base_block_hash`
     pub deleted_quorums: Vec<DeletedQuorum>,
     /// The list of LLMQ commitments for the LLMQs which were added since `base_block_hash`
-    pub new_quorums: Vec<QuorumFinalizationCommitment>,
+    pub new_quorums: Vec<QuorumEntry>,
     /// ChainLock signature used to calculate members per quorum indexes (in `new_quorums`)
-    pub quorums_chainlock_signatures: Vec<BLSSignature>,
+    pub quorums_chainlock_signatures: Vec<QuorumCLSigObject>,
 }
 
-impl_consensus_encoding!(
-    MnListDiff,
-    version,
-    base_block_hash,
-    block_hash,
-    total_transactions,
-    merkle_hashes,
-    merkle_flags,
-    coinbase_tx,
-    deleted_masternodes,
-    new_masternodes,
-    deleted_quorums,
-    new_quorums,
-    quorums_chainlock_signatures
-);
+impl Encodable for MnListDiff {
+    fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+        let mut len = 0;
+        len += self.version.consensus_encode(w)?;
+        len += self.base_block_hash.consensus_encode(w)?;
+        len += self.block_hash.consensus_encode(w)?;
+        len += self.total_transactions.consensus_encode(w)?;
+        len += self.merkle_hashes.consensus_encode(w)?;
+        len += self.merkle_flags.consensus_encode(w)?;
+        len += self.coinbase_tx.consensus_encode(w)?;
+        len += self.deleted_masternodes.consensus_encode(w)?;
+        len += self.new_masternodes.consensus_encode(w)?;
+        len += self.deleted_quorums.consensus_encode(w)?;
+        len += self.new_quorums.consensus_encode(w)?;
+        len += self.quorums_chainlock_signatures.consensus_encode(w)?;
+        Ok(len)
+    }
+}
+
+impl Decodable for MnListDiff {
+    fn consensus_decode<R: io::Read + ?Sized>(r: &mut R) -> Result<Self, encode::Error> {
+        let version = u16::consensus_decode(r)?;
+        let base_block_hash = BlockHash::consensus_decode(r)?;
+        let block_hash = BlockHash::consensus_decode(r)?;
+        let total_transactions = u32::consensus_decode(r)?;
+        let merkle_hashes = Vec::<MerkleRootMasternodeList>::consensus_decode(r)?;
+        let merkle_flags = Vec::<u8>::consensus_decode(r)?;
+        let coinbase_tx = Transaction::consensus_decode(r)?;
+        let deleted_masternodes = Vec::<ProTxHash>::consensus_decode(r)?;
+        let new_masternodes = Vec::<MasternodeListEntry>::consensus_decode(r)?;
+        let deleted_quorums = Vec::<DeletedQuorum>::consensus_decode(r)?;
+        let new_quorums = Vec::<QuorumEntry>::consensus_decode(r)?;
+        let quorums_chainlock_signatures = Vec::<QuorumCLSigObject>::consensus_decode(r)?;
+
+        Ok(MnListDiff {
+            version,
+            base_block_hash,
+            block_hash,
+            total_transactions,
+            merkle_hashes,
+            merkle_flags,
+            coinbase_tx,
+            deleted_masternodes,
+            new_masternodes,
+            deleted_quorums,
+            new_quorums,
+            quorums_chainlock_signatures,
+        })
+    }
+}
 
 #[derive(PartialEq, Eq, Clone, Debug)]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
+pub struct QuorumCLSigObject {
+    pub signature: BLSSignature,
+    pub index_set: Vec<u16>,
+}
+
+impl_consensus_encoding!(QuorumCLSigObject, signature, index_set);
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct DeletedQuorum {
     // TODO: Make it enum
-    pub llmq_type: u8,
-    pub quorum_hash: Hash,
+    pub llmq_type: LLMQType,
+    pub quorum_hash: QuorumHash,
 }
 
 impl_consensus_encoding!(DeletedQuorum, llmq_type, quorum_hash);
@@ -88,8 +145,9 @@ mod tests {
 
     use assert_matches::assert_matches;
 
-    use crate::consensus::deserialize;
+    use crate::consensus::{deserialize, serialize};
     use crate::network::message::{NetworkMessage, RawNetworkMessage};
+    use crate::network::message_sml::MnListDiff;
 
     fn read_binary_file(filename: &str) -> io::Result<Vec<u8>> {
         let mut file = File::open(filename)?;
@@ -105,5 +163,17 @@ mod tests {
         let mn_list_diff: RawNetworkMessage = deserialize(&data).expect("deserialize MnListDiff");
 
         assert_matches!(mn_list_diff, RawNetworkMessage { magic, payload: NetworkMessage::MnListDiff(_) } if magic == 3177909439);
+    }
+
+    #[test]
+    fn deserialize_serialize_mn_list_diff() {
+        let block_hex = include_str!("../../tests/data/test_DML_diffs/DML_0_2221605.hex");
+        let data = hex::decode(block_hex).expect("decode hex");
+        let mn_list_diff: RawNetworkMessage = deserialize(&data).expect("deserialize MnListDiff");
+        if let NetworkMessage::MnListDiff(diff) = mn_list_diff.payload {
+            let serialized = serialize(&diff);
+            let deserialized: MnListDiff =
+                deserialize(serialized.as_slice()).expect("expected to deserialize");
+        }
     }
 }
