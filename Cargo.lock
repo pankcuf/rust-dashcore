@@ -471,6 +471,8 @@ dependencies = [
  "dashcore-private",
  "dashcore_hashes",
  "ed25519-dalek",
+ "ferment",
+ "ferment-macro",
  "hex",
  "hex_lit",
  "lazy_static",
@@ -497,6 +499,8 @@ dependencies = [
  "core2 0.3.3",
  "dashcore-private",
  "dyn-clone",
+ "ferment",
+ "ferment-macro",
  "rs-x11-hash",
  "schemars",
  "secp256k1",
@@ -600,6 +604,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "equivalent"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
+
+[[package]]
+name = "ferment"
+version = "0.1.4"
+source = "git+https://github.com/dashpay/ferment?branch=feat%2Flifetime-support#eec010c0fc955ef9c1fbf9bcb55e211d7248c262"
+dependencies = [
+ "indexmap",
+ "serde_json",
+]
+
+[[package]]
+name = "ferment-macro"
+version = "0.1.4"
+source = "git+https://github.com/dashpay/ferment?branch=feat%2Flifetime-support#eec010c0fc955ef9c1fbf9bcb55e211d7248c262"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "ff"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -699,6 +727,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.15.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
+
+[[package]]
 name = "heapless"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -768,6 +802,17 @@ dependencies = [
  "lazy_static",
  "memmap2",
  "rustc_version",
+]
+
+[[package]]
+name = "indexmap"
+version = "2.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c9c992b02b5b4c94ea26e32fe5bccb7aa7d9f390ab5c1221ff895bc7ea8b652"
+dependencies = [
+ "equivalent",
+ "hashbrown 0.15.2",
+ "serde",
 ]
 
 [[package]]
@@ -1381,7 +1426,7 @@ version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90e49360f31b0b75a6a82a5205c6103ea07a79a60808d44f5cc879d303337926"
 dependencies = [
- "hashbrown",
+ "hashbrown 0.14.5",
  "spin",
 ]
 
