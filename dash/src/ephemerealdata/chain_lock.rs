@@ -5,11 +5,12 @@
 
 #[cfg(all(not(feature = "std"), not(test)))]
 use alloc::vec::Vec;
+#[cfg(feature = "bincode")]
+use bincode::{Decode, Encode};
 use core::fmt::Debug;
+use hashes::{Hash, HashEngine};
 #[cfg(any(feature = "std", test))]
 pub use std::vec::Vec;
-
-use hashes::{Hash, HashEngine};
 
 use crate::bls_sig_utils::BLSSignature;
 use crate::consensus::Encodable;
@@ -25,6 +26,8 @@ const CL_REQUEST_ID_PREFIX: &str = "clsig";
 /// reduces mining uncertainty and mitigate 51% attack.
 /// This data structure represents a p2p message containing a data to verify such a lock.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
 pub struct ChainLock {
     /// Block height

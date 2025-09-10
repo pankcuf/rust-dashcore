@@ -23,16 +23,16 @@ default = [ "std", "secp-recovery", "bincode" ]
 base64 = [ "base64-compat" ]
 rand-std = ["secp256k1/rand"]
 rand = ["secp256k1/rand"]
-serde = ["actual-serde", "dashcore_hashes/serde", "secp256k1/serde"]
+serde = ["dep:serde", "dashcore_hashes/serde", "secp256k1/serde", "dash-network/serde"]
 secp-lowmemory = ["secp256k1/lowmemory"]
 secp-recovery = ["secp256k1/recovery"]
 signer = ["secp-recovery", "rand", "base64"]
 core-block-hash-use-x11 = ["dashcore_hashes/x11"]
 bls = ["blsful"]
 eddsa = ["ed25519-dalek"]
-quorum_validation = ["bls", "bls-signatures"]
+quorum_validation = ["bls"]
 message_verification = ["bls"]
-bincode = [ "dep:bincode", "dashcore_hashes/bincode" ]
+bincode = [ "dep:bincode", "dep:bincode_derive", "dashcore_hashes/bincode", "dash-network/bincode" ]
 apple = [ "ferment", "ferment-macro", "bls-signatures/legacy", "bls-signatures/bip32", "bls-signatures/apple", "bls-signatures/use_serde" ]
 
 # At least one of std, no-std must be enabled.
@@ -40,8 +40,8 @@ apple = [ "ferment", "ferment-macro", "bls-signatures/legacy", "bls-signatures/b
 # The no-std feature doesn't disable std - you need to turn off the std feature for that by disabling default.
 # Instead no-std enables additional features required for this crate to be usable without std.
 # As a result, both can be enabled without conflict.
-std = ["secp256k1/std", "dashcore_hashes/std", "bech32/std", "internals/std"]
-no-std = ["core2", "dashcore_hashes/alloc", "dashcore_hashes/core2", "secp256k1/alloc"]
+std = ["secp256k1/std", "dashcore_hashes/std", "bech32/std", "internals/std", "dash-network/std"]
+no-std = ["core2", "dashcore_hashes/alloc", "dashcore_hashes/core2", "secp256k1/alloc", "dash-network/no-std"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -52,10 +52,10 @@ internals = { path = "../internals", package = "dashcore-private" }
 bech32 = { version = "0.9.1", default-features = false }
 dashcore_hashes = { path = "../hashes", default-features = false }
 secp256k1 = { default-features = false, features = ["hashes"], version= "0.30.0" }
+dash-network = { path = "../dash-network", default-features = false }
 core2 = { version = "0.4.0", optional = true, features = ["alloc"], default-features = false }
 rustversion = { version="1.0.20"}
-# Do NOT use this as a feature! Use the `serde` feature instead.
-actual-serde = { package = "serde", version = "1.0.219", default-features = false, features = [ "derive", "alloc" ], optional = true }
+serde = { version = "1.0.219", default-features = false, features = [ "derive", "alloc" ], optional = true }
 
 base64-compat = { version = "1.0.0", optional = true }
 bitcoinconsensus = { version = "0.20.2-0.5.0", default-features = false, optional = true }
@@ -64,14 +64,15 @@ anyhow = { version= "1.0" }
 hex = { version= "0.4" }
 bincode = { version= "=2.0.0-rc.3", optional = true }
 bincode_derive = { version= "=2.0.0-rc.3", optional = true }
-bitflags = "2.9.0"
-blsful = { version = "3.0.0-pre8", optional = true }
+blsful = { git = "https://github.com/dashpay/agora-blsful", rev = "be108b2cf6ac64eedbe04f91c63731533c8956bc", optional = true }
 ed25519-dalek = { version = "2.1", features = ["rand_core"], optional = true }
 blake3 = "1.8.1"
 thiserror = "2"
-bls-signatures = { git = "https://github.com/dashpay/bls-signatures", rev = "b840e447227dbe6e9a302c97acdf45b95c4d3b21", optional = true  }
+bitvec = "1.0"
+log = "0.4"
 ferment = { version = "0.2", package = "ferment", optional = true }
 ferment-macro = { version = "0.2", package = "ferment-macro", optional = true }
+
 [dev-dependencies]
 serde_json = "1.0.140"
 serde_test = "1.0.177"
@@ -80,9 +81,9 @@ secp256k1 = { features = [ "recovery", "rand", "hashes" ], version="0.30.0" }
 bincode = { version= "=2.0.0-rc.3" }
 assert_matches = "1.5.0"
 dashcore = { path = ".", features = ["core-block-hash-use-x11", "message_verification", "quorum_validation", "signer"] }
+criterion = "0.5"
+key-wallet = { path = "../key-wallet" }
 
-[[example]]
-name = "bip32"
 
 [[example]]
 name = "handshake"
@@ -95,3 +96,10 @@ required-features = ["std", "bitcoinconsensus"]
 [[example]]
 name = "taproot-psbt"
 required-features = ["std", "rand-std", "bitcoinconsensus"]
+
+[[bench]]
+name = "transaction"
+harness = false
+
+[lints.rust]
+unexpected_cfgs = { level = "deny", check-cfg = ['cfg(bench)', 'cfg(fuzzing)', 'cfg(kani)'] }

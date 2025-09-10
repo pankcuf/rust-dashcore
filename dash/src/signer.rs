@@ -19,7 +19,8 @@ pub fn verify_data_signature(
 ) -> Result<(), anyhow::Error> {
     let data_hash = double_sha(data);
 
-    let msg = Message::from_slice(&data_hash).map_err(anyhow::Error::msg)?;
+    let msg =
+        Message::from_digest(data_hash.try_into().map_err(|_| anyhow!("Invalid hash length"))?);
     let sig: RecoverableSignature = RecoverableSignature::from_compact_signature(signature)?;
 
     let pub_key = ECDSAPublicKey::from_slice(public_key).map_err(anyhow::Error::msg)?;
@@ -40,7 +41,8 @@ pub fn verify_hash_signature(
         RecoverableSignature::from_compact_signature(data_signature)?;
 
     let secp = Secp256k1::new();
-    let msg = Message::from_slice(data_hash).map_err(anyhow::Error::msg)?;
+    let msg =
+        Message::from_digest(data_hash.try_into().map_err(|_| anyhow!("Invalid hash length"))?);
     let recovered_public_key = secp.recover_ecdsa(&msg, &signature).map_err(anyhow::Error::msg)?;
 
     let recovered_compressed_public_key = recovered_public_key.serialize();
@@ -67,7 +69,8 @@ pub fn sign_hash(data_hash: &[u8], private_key: &[u8]) -> Result<[u8; 65], anyho
 
     // TODO enable support for features in rust-dpp and allow to use global objects (SECP256K1)
     let secp = Secp256k1::new();
-    let msg = Message::from_slice(data_hash).map_err(anyhow::Error::msg)?;
+    let msg =
+        Message::from_digest(data_hash.try_into().map_err(|_| anyhow!("Invalid hash length"))?);
 
     let signature = secp
         .sign_ecdsa_recoverable(&msg, &pk)
@@ -139,7 +142,6 @@ pub fn ripemd160_sha256(data: &[u8]) -> Vec<u8> {
 mod test {
     use super::*;
     use crate::internal_macros::hex;
-    use crate::psbt::serialize::Serialize;
     use crate::{PublicKey, assert_error_contains};
 
     struct Keys {
@@ -157,7 +159,7 @@ mod test {
 
         let mut public_key = PublicKey::from_slice(&public_key_compressed_bytes).unwrap();
         public_key.compressed = false;
-        let public_key_uncompressed_bytes = public_key.serialize();
+        let public_key_uncompressed_bytes = public_key.to_bytes();
 
         Keys {
             private_key: private_key_bytes,
@@ -273,7 +275,7 @@ mod test {
         let secret_key = SecretKey::from_slice(&k.private_key).unwrap();
 
         let unrecoverable_signature =
-            secp.sign_ecdsa(&Message::from_slice(&data_hash).unwrap(), &secret_key);
+            secp.sign_ecdsa(&Message::from_digest(data_hash.try_into().unwrap()), &secret_key);
         let unrecoverable_signature_bytes = unrecoverable_signature.serialize_compact();
         let validation_result =
             verify_data_signature(&data, &unrecoverable_signature_bytes, &k.public_key_compressed);

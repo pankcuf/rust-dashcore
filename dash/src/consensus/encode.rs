@@ -31,7 +31,7 @@
 //!
 
 use core::convert::From;
-use core::{fmt, mem, u32};
+use core::{fmt, mem};
 use std::io::Write;
 
 #[cfg(feature = "core-block-hash-use-x11")]
@@ -867,6 +867,22 @@ impl Decodable for CheckedData {
         let ret = read_bytes_from_finite_reader(r, opts)?;
         let expected_checksum = sha2_checksum(&ret);
         if expected_checksum != checksum {
+            // Debug logging for checksum mismatches
+            eprintln!(
+                "CHECKSUM DEBUG: len={}, checksum={:02x?}, payload_len={}, payload={:02x?}",
+                len,
+                checksum,
+                ret.len(),
+                &ret[..ret.len().min(32)]
+            );
+
+            // Special case: all-zeros checksum is definitely corruption
+            if checksum == [0, 0, 0, 0] {
+                eprintln!(
+                    "CORRUPTION DETECTED: All-zeros checksum indicates corrupted stream or connection"
+                );
+            }
+
             Err(self::Error::InvalidChecksum {
                 expected: expected_checksum,
                 actual: checksum,
@@ -877,13 +893,13 @@ impl Decodable for CheckedData {
     }
 }
 
-impl<'a, T: Encodable> Encodable for &'a T {
+impl<T: Encodable> Encodable for &T {
     fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         (**self).consensus_encode(w)
     }
 }
 
-impl<'a, T: Encodable> Encodable for &'a mut T {
+impl<T: Encodable> Encodable for &mut T {
     fn consensus_encode<W: io::Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
         (**self).consensus_encode(w)
     }
@@ -1076,7 +1092,7 @@ pub fn read_fixed_bitset<R: Read + ?Sized>(r: &mut R, size: usize) -> std::io::R
         ));
     }
     // Calculate the number of bytes needed
-    let num_bytes = (size + 7) / 8;
+    let num_bytes = size.div_ceil(8);
     let mut bytes = vec![0u8; num_bytes];
 
     // Read bytes from the reader
@@ -1113,7 +1129,7 @@ pub fn write_fixed_bitset<W: Write + ?Sized>(
         ));
     }
     // Calculate the number of bytes needed to represent 'size' bits
-    let num_bytes = (size + 7) / 8;
+    let num_bytes = size.div_ceil(8);
     let mut bytes = vec![0u8; num_bytes];
 
     // Determine the minimum size to handle cases where bits.len() < size
@@ -1138,7 +1154,7 @@ pub fn fixed_bitset_len(bits: &[bool], size: usize) -> usize {
     let ms = std::cmp::min(size, bits.len());
 
     // Calculate the number of bytes needed to represent `ms` bits
-    (ms + 7) / 8
+    ms.div_ceil(8)
 }
 
 #[cfg(test)]
@@ -1425,7 +1441,7 @@ mod tests {
             .is_err()
         );
 
-        let rand_io_err = Error::Io(io::Error::new(io::ErrorKind::Other, ""));
+        let rand_io_err = Error::Io(io::Error::other(""));
 
         // Check serialization that `if len > MAX_VEC_SIZE {return err}` isn't inclusive,
         // by making sure it fails with IO Error and not an `OversizedVectorAllocation` Error.
@@ -1453,7 +1469,7 @@ mod tests {
         Vec<T>: Decodable,
         T: fmt::Debug,
     {
-        let rand_io_err = Error::Io(io::Error::new(io::ErrorKind::Other, ""));
+        let rand_io_err = Error::Io(io::Error::other(""));
         let varint = VarInt((super::MAX_VEC_SIZE / mem::size_of::<T>()) as u64);
         let err = deserialize::<Vec<T>>(&serialize(&varint)).unwrap_err();
         assert_eq!(discriminant(&err), discriminant(&rand_io_err));
@@ -1554,7 +1570,7 @@ mod tests {
         for &value in &test_values {
             let mut buffer = Vec::new();
             // Write the value to the buffer
-            let bytes_written = write_compact_size(&mut buffer, value).expect("Failed to write");
+            write_compact_size(&mut buffer, value).expect("Failed to write");
             // Read the value back from the buffer
             let mut cursor = Cursor::new(&buffer);
             let read_value = read_compact_size(&mut cursor).expect("Failed to read");
@@ -1604,7 +1620,7 @@ mod tests {
                 // Expect the write to succeed
                 let bytes_written = result.expect("Failed to write");
                 // Calculate expected bytes written
-                let expected_bytes = (size + 7) / 8;
+                let expected_bytes = size.div_ceil(8);
                 assert_eq!(
                     bytes_written, expected_bytes,
                     "Incorrect number of bytes written for bitset with size {}",

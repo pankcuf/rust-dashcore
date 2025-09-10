@@ -700,7 +700,6 @@ impl std::error::Error for HiddenNodes {
 // for which we need a separate type.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "serde", serde(into = "NodeInfo"))]
 #[cfg_attr(feature = "serde", serde(try_from = "NodeInfo"))]
 pub struct TapTree(NodeInfo);
@@ -725,7 +724,7 @@ impl TapTree {
 
     /// Returns [`TapTreeIter<'_>`] iterator for a taproot script tree, operating in DFS order over
     /// tree [`ScriptLeaf`]s.
-    pub fn script_leaves(&self) -> ScriptLeaves {
+    pub fn script_leaves(&self) -> ScriptLeaves<'_> {
         ScriptLeaves {
             leaf_iter: self.0.leaf_nodes(),
         }
@@ -904,7 +903,7 @@ impl NodeInfo {
     }
 
     /// Creates an iterator over all leaves (including hidden leaves) in the tree.
-    pub fn leaf_nodes(&self) -> LeafNodes {
+    pub fn leaf_nodes(&self) -> LeafNodes<'_> {
         LeafNodes {
             leaf_iter: self.leaves.iter(),
         }
@@ -994,7 +993,6 @@ impl<'de> serde::Deserialize<'de> for NodeInfo {
 /// Leaf node in a taproot tree. Can be either hidden or known.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub enum TapLeaf {
     /// A known script
     Script(ScriptBuf, LeafVersion),
@@ -1147,7 +1145,6 @@ impl<'leaf> ScriptLeaf<'leaf> {
 /// The merkle proof for inclusion of a tree in a taptree hash.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "serde", serde(into = "Vec<TapNodeHash>"))]
 #[cfg_attr(feature = "serde", serde(try_from = "Vec<TapNodeHash>"))]
 pub struct TaprootMerkleBranch(Vec<TapNodeHash>);
@@ -1300,7 +1297,6 @@ impl From<TaprootMerkleBranch> for Vec<TapNodeHash> {
 /// Control block data structure used in Tapscript satisfaction.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct ControlBlock {
     /// The tapleaf version.
     pub leaf_version: LeafVersion,

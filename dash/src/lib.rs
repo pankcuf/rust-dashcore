@@ -40,7 +40,7 @@
 //! * `serde` - (dependency), implements `serde`-based serialization and deserialization.
 //! * `secp-lowmemory` - optimizations for low-memory devices.
 //! * `no-std` - enables additional features required for this crate to be usable
-//!              without std. Does **not** disable `std`. Depends on `core2`.
+//!   without std. Does **not** disable `std`. Depends on `core2`.
 //!
 
 #![cfg_attr(all(not(feature = "std"), not(test)), no_std)]
@@ -76,8 +76,6 @@ pub extern crate bitcoinconsensus;
 pub extern crate dashcore_hashes as hashes;
 pub extern crate secp256k1;
 
-#[cfg(feature = "bls-signatures")]
-pub use bls_signatures;
 #[cfg(feature = "blsful")]
 pub use blsful;
 #[cfg(feature = "ed25519-dalek")]
@@ -85,7 +83,7 @@ pub use ed25519_dalek;
 
 #[cfg(feature = "serde")]
 #[macro_use]
-extern crate actual_serde as serde;
+extern crate serde;
 extern crate core;
 
 #[cfg(test)]
@@ -94,7 +92,7 @@ mod test_macros;
 mod internal_macros;
 mod parse;
 #[cfg(feature = "serde")]
-mod serde_utils;
+pub mod serde_utils;
 
 #[macro_use]
 pub mod network;
@@ -103,33 +101,32 @@ pub mod amount;
 pub mod base58;
 pub mod bip152;
 pub mod bip158;
-pub mod bip32;
 pub mod blockdata;
+pub mod bloom;
 pub mod consensus;
 // Private until we either make this a crate or flatten it - still to be decided.
 pub mod bls_sig_utils;
-pub(crate) mod crypto;
-pub mod dip9;
+pub mod crypto;
 pub mod ephemerealdata;
 pub mod error;
 pub mod hash_types;
 pub mod merkle_tree;
 pub mod policy;
 pub mod pow;
-pub mod psbt;
 pub mod sign_message;
 pub mod signer;
 pub mod sml;
 pub mod string;
 pub mod taproot;
 pub mod util;
+// pub mod serialize;
 
 // May depend on crate features and we don't want to bother with it
 #[allow(unused)]
 #[cfg(feature = "std")]
 use std::error::Error as StdError;
 #[cfg(feature = "std")]
-use std::io;
+pub use std::io;
 
 #[allow(unused)]
 #[cfg(not(feature = "std"))]
@@ -143,14 +140,13 @@ pub use crate::blockdata::block::{self, Block, Header};
 pub use crate::blockdata::fee_rate::FeeRate;
 pub use crate::blockdata::locktime::{self, absolute, relative};
 pub use crate::blockdata::script::{self, Script, ScriptBuf};
-pub use crate::blockdata::transaction::hash_type::EcdsaSighashType;
 pub use crate::blockdata::transaction::{self, Transaction};
 pub use crate::blockdata::weight::Weight;
 pub use crate::blockdata::witness::{self, Witness};
 pub use crate::blockdata::{constants, opcodes};
 pub use crate::consensus::encode::VarInt;
 pub use crate::crypto::key::{self, PrivateKey, PublicKey};
-pub use crate::crypto::{ecdsa, sighash};
+pub use crate::crypto::{ecdsa, sighash, sighash::EcdsaSighashType};
 pub use crate::ephemerealdata::chain_lock::ChainLock;
 pub use crate::ephemerealdata::instant_lock::InstantLock;
 pub use crate::error::Error;
@@ -159,11 +155,11 @@ pub use crate::hash_types::{
     TxMerkleNode, Txid, WPubkeyHash, WScriptHash, Wtxid,
 };
 pub use crate::merkle_tree::MerkleBlock;
-pub use crate::network::constants::Network;
 pub use crate::pow::{CompactTarget, Target, Work};
 pub use crate::transaction::outpoint::OutPoint;
 pub use crate::transaction::txin::TxIn;
 pub use crate::transaction::txout::TxOut;
+pub use dash_network::Network;
 
 #[cfg(not(feature = "std"))]
 mod io_extras {
@@ -197,7 +193,7 @@ pub mod prelude {
     #[cfg(all(not(feature = "std"), not(test)))]
     pub use alloc::{string::{String, ToString}, vec::Vec, boxed::Box, borrow::{Borrow, Cow, ToOwned}, slice, rc};
 
-    #[cfg(all(not(feature = "std"), not(test), any(not(rust_v_1_60), target_has_atomic = "ptr")))]
+    #[cfg(all(not(feature = "std"), not(test), target_has_atomic = "ptr"))]
     pub use alloc::sync;
 
     #[cfg(any(feature = "std", test))]

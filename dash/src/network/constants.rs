@@ -20,18 +20,14 @@
 //! This module provides various constants relating to the Dash network
 //! protocol, such as protocol versioning and magic header bytes.
 //!
-//! The [`Network`][1] type implements the [`Decodable`][2] and
-//! [`Encodable`][3] traits and encodes the magic bytes of the given
-//! network.
+//! The [`Network`][1] type is now provided by the `dash_network` crate.
 //!
-//! [1]: enum.Network.html
-//! [2]: ../../consensus/encode/trait.Decodable.html
-//! [3]: ../../consensus/encode/trait.Encodable.html
+//! [1]: https://docs.rs/dash-network/latest/dash_network/enum.Network.html
 //!
 //! # Example: encoding a network's magic bytes
 //!
 //! ```rust
-//! use dashcore::network::constants::Network;
+//! use dash_network::Network;
 //! use dashcore::consensus::encode::serialize;
 //!
 //! let network = Network::Dash;
@@ -42,19 +38,18 @@
 
 use core::convert::From;
 use core::fmt::Display;
-use core::str::FromStr;
 use core::{fmt, ops};
 
-#[cfg(feature = "bincode")]
-use bincode::{Decode, Encode};
 use hashes::Hash;
-use internals::write_err;
 
 use crate::consensus::encode::{self, Decodable, Encodable};
 use crate::constants::ChainHash;
 use crate::error::impl_std_error;
-use crate::prelude::{String, ToOwned};
 use crate::{BlockHash, io};
+use dash_network::Network;
+
+// Re-export NODE_HEADERS_COMPRESSED for convenience
+pub const NODE_HEADERS_COMPRESSED: ServiceFlags = ServiceFlags::NODE_HEADERS_COMPRESSED;
 
 /// Version of the protocol as appearing in network message headers
 /// This constant is used to signal to other peers which features you support.
@@ -71,85 +66,16 @@ use crate::{BlockHash, io};
 /// 70001 - Support bloom filter messages `filterload`, `filterclear` `filteradd`, `merkleblock` and FILTERED_BLOCK inventory type
 /// 60002 - Support `mempool` message
 /// 60001 - Support `pong` message and nonce in `ping` message
-pub const PROTOCOL_VERSION: u32 = 70220;
+pub const PROTOCOL_VERSION: u32 = 70237;
 
-/// The cryptocurrency network to act on.
-#[derive(Copy, PartialEq, Eq, PartialOrd, Ord, Clone, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
-#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
-#[non_exhaustive]
-#[cfg_attr(feature = "bincode", derive(Encode, Decode))]
-pub enum Network {
-    /// Classic Dash Core Payment Chain
-    Dash,
-    /// Dash's testnet network.
-    Testnet,
-    /// Dash's devnet network.
-    Devnet,
-    /// Bitcoin's regtest network.
-    Regtest,
+/// Extension trait for Network to add dash-specific methods
+pub trait NetworkExt {
+    /// The known dash genesis block hash for mainnet and testnet
+    fn known_genesis_block_hash(&self) -> Option<BlockHash>;
 }
 
-impl Network {
-    /// Creates a `Network` from the magic bytes.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use dashcore::network::constants::Network;
-    ///
-    /// assert_eq!(Some(Network::Dash), Network::from_magic(0xBD6B0CBF));
-    /// assert_eq!(None, Network::from_magic(0xFFFFFFFF));
-    /// ```
-    pub fn from_magic(magic: u32) -> Option<Network> {
-        // Note: any new entries here must be added to `magic` below
-        match magic {
-            0xBD6B0CBF => Some(Network::Dash),
-            0xFFCAE2CE => Some(Network::Testnet),
-            0xCEFFCAE2 => Some(Network::Devnet),
-            0xDAB5BFFA => Some(Network::Regtest),
-            _ => None,
-        }
-    }
-
-    /// Return the network magic bytes, which should be encoded little-endian
-    /// at the start of every message
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use dashcore::network::constants::Network;
-    ///
-    /// let network = Network::Dash;
-    /// assert_eq!(network.magic(), 0xBD6B0CBF);
-    /// ```
-    pub fn magic(self) -> u32 {
-        // Note: any new entries here must be added to `from_magic` above
-        match self {
-            Network::Dash => 0xBD6B0CBF,
-            Network::Testnet => 0xFFCAE2CE,
-            Network::Devnet => 0xCEFFCAE2,
-            Network::Regtest => 0xDAB5BFFA,
-        }
-    }
-
-    /// The known activation height of core v20
-    pub fn core_v20_activation_height(&self) -> u32 {
-        match self {
-            Network::Dash => 1987776,
-            Network::Testnet => 905100,
-            _ => 1, //todo: this might not be 1
-        }
-    }
-
-    /// Helper method to know if core v20 was active
-    pub fn core_v20_is_active_at(&self, core_block_height: u32) -> bool {
-        core_block_height >= self.core_v20_activation_height()
-    }
-
-    /// The known dash genesis block hash for mainnet and testnet
-    pub fn known_genesis_block_hash(&self) -> Option<BlockHash> {
+impl NetworkExt for Network {
+    fn known_genesis_block_hash(&self) -> Option<BlockHash> {
         match self {
             Network::Dash => {
                 let mut block_hash =
@@ -166,51 +92,15 @@ impl Network {
                 Some(BlockHash::from_byte_array(block_hash.try_into().expect("expected 32 bytes")))
             }
             Network::Devnet => None,
-            Network::Regtest => None,
+            Network::Regtest => {
+                let mut block_hash =
+                    hex::decode("000008ca1832a4baf228eb1553c03d3a2c8e02399550dd6ea8d65cec3ef23d2e")
+                        .expect("expected valid hex");
+                block_hash.reverse();
+                Some(BlockHash::from_byte_array(block_hash.try_into().expect("expected 32 bytes")))
+            }
+            _ => None,
         }
-    }
-}
-
-/// An error in parsing network string.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseNetworkError(String);
-
-impl fmt::Display for ParseNetworkError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write_err!(f, "failed to parse {} as network", self.0; self)
-    }
-}
-impl_std_error!(ParseNetworkError);
-
-impl FromStr for Network {
-    type Err = ParseNetworkError;
-
-    #[inline]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use Network::*;
-
-        let network = match s {
-            "dash" => Dash,
-            "testnet" => Testnet,
-            "devnet" => Devnet,
-            "regtest" => Regtest,
-            _ => return Err(ParseNetworkError(s.to_owned())),
-        };
-        Ok(network)
-    }
-}
-
-impl fmt::Display for Network {
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        use Network::*;
-
-        let s = match *self {
-            Dash => "dash",
-            Testnet => "testnet",
-            Devnet => "devnet",
-            Regtest => "regtest",
-        };
-        write!(f, "{}", s)
     }
 }
 
@@ -276,6 +166,11 @@ impl ServiceFlags {
     /// 288 (2 day) blocks.
     /// See BIP159 for details on how this is implemented.
     pub const NETWORK_LIMITED: ServiceFlags = ServiceFlags(1 << 10);
+
+    /// NODE_HEADERS_COMPRESSED means the node supports compressed block headers as defined in DIP-0025.
+    /// This allows for more efficient header synchronization by compressing headers from 80 bytes
+    /// to as low as 37 bytes using stateful compression techniques.
+    pub const NODE_HEADERS_COMPRESSED: ServiceFlags = ServiceFlags(1 << 11);
 
     // NOTE: When adding new flags, remember to update the Display impl accordingly.
 
@@ -344,6 +239,7 @@ impl fmt::Display for ServiceFlags {
         write_flag!(WITNESS);
         write_flag!(COMPACT_FILTERS);
         write_flag!(NETWORK_LIMITED);
+        write_flag!(NODE_HEADERS_COMPRESSED);
         // If there are unknown flags left, we append them in hex.
         if flags != ServiceFlags::NONE {
             if !first {
@@ -411,20 +307,21 @@ impl Decodable for ServiceFlags {
 
 #[cfg(test)]
 mod tests {
-    use super::{Network, ServiceFlags};
+    use super::ServiceFlags;
     use crate::consensus::encode::{deserialize, serialize};
+    use dash_network::Network;
 
     #[test]
     fn serialize_test() {
         assert_eq!(serialize(&Network::Dash.magic()), &[0xbf, 0x0c, 0x6b, 0xbd]);
         assert_eq!(serialize(&Network::Testnet.magic()), &[0xce, 0xe2, 0xca, 0xff]);
         assert_eq!(serialize(&Network::Devnet.magic()), &[0xe2, 0xca, 0xff, 0xce]);
-        assert_eq!(serialize(&Network::Regtest.magic()), &[0xfa, 0xbf, 0xb5, 0xda]);
+        assert_eq!(serialize(&Network::Regtest.magic()), &[0xfc, 0xc1, 0xb7, 0xdc]);
 
         assert_eq!(deserialize(&[0xbf, 0x0c, 0x6b, 0xbd]).ok(), Some(Network::Dash.magic()));
         assert_eq!(deserialize(&[0xce, 0xe2, 0xca, 0xff]).ok(), Some(Network::Testnet.magic()));
         assert_eq!(deserialize(&[0xe2, 0xca, 0xff, 0xce]).ok(), Some(Network::Devnet.magic()));
-        assert_eq!(deserialize(&[0xfa, 0xbf, 0xb5, 0xda]).ok(), Some(Network::Regtest.magic()));
+        assert_eq!(deserialize(&[0xfc, 0xc1, 0xb7, 0xdc]).ok(), Some(Network::Regtest.magic()));
     }
 
     #[test]
@@ -450,6 +347,7 @@ mod tests {
             ServiceFlags::WITNESS,
             ServiceFlags::COMPACT_FILTERS,
             ServiceFlags::NETWORK_LIMITED,
+            ServiceFlags::NODE_HEADERS_COMPRESSED,
         ];
 
         let mut flags = ServiceFlags::NONE;

@@ -35,7 +35,6 @@ impl_consensus_encoding!(GetQRInfo, base_block_hashes, block_request_hash, extra
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 pub struct QRInfo {
     // Quorum snapshots for heights h-c, h-2c, h-3c.
     pub quorum_snapshot_at_h_minus_c: QuorumSnapshot,
@@ -146,18 +145,17 @@ impl Decodable for QRInfo {
 /// Fields:
 /// - `mn_skip_list_mode`: A 4-byte signed integer representing the mode of the skip list.
 /// - `active_quorum_members_count`: A compact-size unsigned integer representing the number of active quorum members.
-/// - `active_quorum_members`: A bitset (stored as a Vec<u8>) with length =
-///    (active_quorum_members_count + 7) / 8.
+/// - `active_quorum_members`: A bitset of active_quorum_members_count bits (Vec<bool>),
+///   serialized via write_fixed_bitset/read_fixed_bitset.
 /// - `mn_skip_list_size`: A compact-size unsigned integer representing the number of skip list entries.
 /// - `mn_skip_list`: An array of 4-byte signed integers, one per skip list entry.
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
 pub struct QuorumSnapshot {
     pub skip_list_mode: MNSkipListMode,
-    pub active_quorum_members: Vec<bool>, // Bitset, length = (active_quorum_members_count + 7) / 8
+    pub active_quorum_members: Vec<bool>, // Bitset of active_quorum_members_count bits
     pub skip_list: Vec<i32>,              // Array of uint32_t
 }
 
@@ -217,10 +215,11 @@ impl Decodable for QuorumSnapshot {
 #[repr(u32)]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
+#[derive(Default)]
 pub enum MNSkipListMode {
     /// Mode 0: No skipping – the skip list is empty.
+    #[default]
     NoSkipping = 0,
     /// Mode 1: Skip the first entry; subsequent entries contain relative skips.
     ///
@@ -262,7 +261,7 @@ impl From<MNSkipListMode> for u32 {
 }
 impl MNSkipListMode {
     pub fn index(&self) -> u32 {
-        u32::from(self.clone())
+        u32::from(*self)
     }
 }
 pub fn from_index(index: u32) -> MNSkipListMode {
@@ -278,12 +277,6 @@ impl Display for MNSkipListMode {
             MNSkipListMode::SkipAll => "All Nodes Skipped (empty list, no DKG)",
         };
         write!(f, "{}", description)
-    }
-}
-
-impl Default for MNSkipListMode {
-    fn default() -> Self {
-        MNSkipListMode::NoSkipping
     }
 }
 
@@ -308,18 +301,8 @@ impl Decodable for MNSkipListMode {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
-    use std::io::{self, Read};
-
     use crate::consensus::deserialize;
     use crate::network::message::{NetworkMessage, RawNetworkMessage};
-
-    fn read_binary_file(filename: &str) -> io::Result<Vec<u8>> {
-        let mut file = File::open(filename)?;
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer)?;
-        Ok(buffer)
-    }
 
     #[test]
     fn deserialize_qr_info() {
@@ -329,7 +312,7 @@ mod tests {
 
         let RawNetworkMessage {
             magic,
-            payload: NetworkMessage::QRInfo(qr_info),
+            payload: NetworkMessage::QRInfo(_qr_info),
         } = network_qr_info
         else {
             panic!("expected qr_info message");

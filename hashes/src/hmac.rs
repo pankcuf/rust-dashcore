@@ -246,7 +246,7 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test() {
-        use crate::{Hash, HashEngine, Hmac, HmacEngine, sha256};
+        use crate::{sha256, Hash, HashEngine, Hmac, HmacEngine};
 
         #[derive(Clone)]
         struct Test {
@@ -372,9 +372,9 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn hmac_sha512_serde() {
-        use serde_test::{Configure, Token, assert_tokens};
+        use serde_test::{assert_tokens, Configure, Token};
 
-        use crate::{Hash, Hmac, sha512};
+        use crate::{sha512, Hash, Hmac};
 
         #[rustfmt::skip]
         static HASH_BYTES: [u8; 64] = [
@@ -397,42 +397,5 @@ mod tests {
                  fffb8088ccf85497121ad4499e0845b876f6dd6640088a2f0b2d8a600bdf4c0c",
             )],
         );
-    }
-}
-
-#[cfg(bench)]
-mod benches {
-    use test::Bencher;
-
-    use crate::{Hash, HashEngine, Hmac, sha256};
-
-    #[bench]
-    pub fn hmac_sha256_10(bh: &mut Bencher) {
-        let mut engine = Hmac::<sha256::Hash>::engine();
-        let bytes = [1u8; 10];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
-    }
-
-    #[bench]
-    pub fn hmac_sha256_1k(bh: &mut Bencher) {
-        let mut engine = Hmac::<sha256::Hash>::engine();
-        let bytes = [1u8; 1024];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
-    }
-
-    #[bench]
-    pub fn hmac_sha256_64k(bh: &mut Bencher) {
-        let mut engine = Hmac::<sha256::Hash>::engine();
-        let bytes = [1u8; 65536];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
     }
 }

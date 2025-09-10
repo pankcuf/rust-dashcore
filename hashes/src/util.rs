@@ -18,8 +18,8 @@ macro_rules! hex_fmt_impl(
     ($reverse:expr, $ty:ident) => (
         $crate::hex_fmt_impl!($reverse, $ty, );
     );
-    ($reverse:expr, $ty:ident, $($gen:ident: $gent:ident),*) => (
-        impl<$($gen: $gent),*> $crate::_export::_core::fmt::LowerHex for $ty<$($gen),*> {
+    ($reverse:expr, $ty:ident, $($generator:ident: $gent:ident),*) => (
+        impl<$($generator: $gent),*> $crate::_export::_core::fmt::LowerHex for $ty<$($generator),*> {
             #[inline]
             fn fmt(&self, f: &mut $crate::_export::_core::fmt::Formatter) -> $crate::_export::_core::fmt::Result {
                 if $reverse {
@@ -30,7 +30,7 @@ macro_rules! hex_fmt_impl(
             }
         }
 
-        impl<$($gen: $gent),*> $crate::_export::_core::fmt::UpperHex for $ty<$($gen),*> {
+        impl<$($generator: $gent),*> $crate::_export::_core::fmt::UpperHex for $ty<$($generator),*> {
             #[inline]
             fn fmt(&self, f: &mut $crate::_export::_core::fmt::Formatter) -> $crate::_export::_core::fmt::Result {
                 if $reverse {
@@ -41,14 +41,14 @@ macro_rules! hex_fmt_impl(
             }
         }
 
-        impl<$($gen: $gent),*> $crate::_export::_core::fmt::Display for $ty<$($gen),*> {
+        impl<$($generator: $gent),*> $crate::_export::_core::fmt::Display for $ty<$($generator),*> {
             #[inline]
             fn fmt(&self, f: &mut $crate::_export::_core::fmt::Formatter) -> $crate::_export::_core::fmt::Result {
                 $crate::_export::_core::fmt::LowerHex::fmt(&self, f)
             }
         }
 
-        impl<$($gen: $gent),*> $crate::_export::_core::fmt::Debug for $ty<$($gen),*> {
+        impl<$($generator: $gent),*> $crate::_export::_core::fmt::Debug for $ty<$($generator),*> {
             #[inline]
             fn fmt(&self, f: &mut $crate::_export::_core::fmt::Formatter) -> $crate::_export::_core::fmt::Result {
                 write!(f, "{:#}", self)
@@ -63,14 +63,14 @@ macro_rules! borrow_slice_impl(
     ($ty:ident) => (
         $crate::borrow_slice_impl!($ty, );
     );
-    ($ty:ident, $($gen:ident: $gent:ident),*) => (
-        impl<$($gen: $gent),*> $crate::_export::_core::borrow::Borrow<[u8]> for $ty<$($gen),*>  {
+    ($ty:ident, $($generator:ident: $gent:ident),*) => (
+        impl<$($generator: $gent),*> $crate::_export::_core::borrow::Borrow<[u8]> for $ty<$($generator),*>  {
             fn borrow(&self) -> &[u8] {
                 &self[..]
             }
         }
 
-        impl<$($gen: $gent),*> $crate::_export::_core::convert::AsRef<[u8]> for $ty<$($gen),*>  {
+        impl<$($generator: $gent),*> $crate::_export::_core::convert::AsRef<[u8]> for $ty<$($generator),*>  {
             fn as_ref(&self) -> &[u8] {
                 &self[..]
             }
@@ -326,8 +326,8 @@ macro_rules! hash_newtype {
             }
         }
 
-        impl Into<[u8; <$hash as $crate::Hash>::LEN]> for $newtype {
-            fn into(self) -> [u8; <$hash as $crate::Hash>::LEN] { self.0.into() }
+        impl From<$newtype> for [u8; <$hash as $crate::Hash>::LEN] {
+            fn from(value: $newtype) -> Self { value.0.into() }
         }
         )+
     };
@@ -461,8 +461,8 @@ macro_rules! hash_newtype_no_ord {
             }
         }
 
-        impl Into<[u8; <$hash as $crate::Hash>::LEN]> for $newtype {
-            fn into(self) -> [u8; <$hash as $crate::Hash>::LEN] { self.0.into() }
+        impl From<$newtype> for [u8; <$hash as $crate::Hash>::LEN] {
+            fn from(value: $newtype) -> Self { value.0.into() }
         }
         )+
     };
@@ -583,19 +583,18 @@ macro_rules! hash_newtype_known_attrs {
 
 #[cfg(feature = "schemars")]
 pub mod json_hex_string {
-    use schemars::JsonSchema;
-    use schemars::r#gen::SchemaGenerator;
-    use schemars::schema::{Schema, SchemaObject};
+    use schemars::SchemaGenerator;
+    use schemars::{json_schema, Schema};
     macro_rules! define_custom_hex {
         ($name:ident, $len:expr) => {
-            pub fn $name(gen: &mut SchemaGenerator) -> Schema {
-                let mut schema: SchemaObject = <String>::json_schema(gen).into();
-                schema.string = Some(Box::new(schemars::schema::StringValidation {
-                    max_length: Some($len * 2),
-                    min_length: Some($len * 2),
-                    pattern: Some("[0-9a-fA-F]+".to_owned()),
-                }));
-                schema.into()
+            pub fn $name(_generator: &mut SchemaGenerator) -> Schema {
+                // In schemars 1.0, we can use the json_schema! macro to create schemas
+                json_schema!({
+                    "type": "string",
+                    "minLength": $len * 2,
+                    "maxLength": $len * 2,
+                    "pattern": "^[0-9a-fA-F]+$"
+                })
             }
         };
     }
@@ -607,7 +606,7 @@ pub mod json_hex_string {
 
 #[cfg(test)]
 mod test {
-    use crate::{Hash, sha256};
+    use crate::{sha256, Hash};
 
     #[test]
     fn hash_as_ref_array() {

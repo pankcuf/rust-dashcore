@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 #[cfg(feature = "bincode")]
 use bincode::{Decode, Encode};
-use hashes::Hash;
+use hashes::{Hash, sha256d};
 use crate::hash_types::{ConfirmedHashHashedWithProRegTx, Sha256dHash};
 use crate::sml::masternode_list_entry::MasternodeListEntry;
 
@@ -12,7 +12,6 @@ use crate::sml::masternode_list_entry::MasternodeListEntry;
 #[derive(Clone, Eq, PartialEq, Debug)]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
 pub struct QualifiedMasternodeListEntry {
     /// The underlying masternode list entry

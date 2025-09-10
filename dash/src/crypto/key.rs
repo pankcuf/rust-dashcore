@@ -30,10 +30,10 @@ use internals::write_err;
 pub use secp256k1::{self, Keypair, Parity, Secp256k1, Verification, XOnlyPublicKey, constants};
 
 use crate::hash_types::{PubkeyHash, WPubkeyHash};
-use crate::network::constants::Network;
 use crate::prelude::*;
 use crate::taproot::{TapNodeHash, TapTweakHash};
 use crate::{base58, io};
+use dash_network::Network;
 
 /// A key-related error.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -43,8 +43,8 @@ pub enum Error {
     Base58(base58::Error),
     /// secp256k1-related error
     Secp256k1(secp256k1::Error),
-    /// bls signatures related error
-    #[cfg(feature = "bls-signatures")]
+    /// bls related error
+    #[cfg(feature = "blsful")]
     BLSError(String),
     /// edwards 25519 related error
     #[cfg(feature = "ed25519-dalek")]
@@ -72,7 +72,7 @@ impl fmt::Display for Error {
             Error::NotSupported(string) => {
                 write!(f, "{}", string.as_str())
             }
-            #[cfg(feature = "bls-signatures")]
+            #[cfg(feature = "blsful")]
             Error::BLSError(string) => write!(f, "{}", string.as_str()),
             #[cfg(feature = "ed25519-dalek")]
             Error::Ed25519Dalek(string) => write!(f, "{}", string.as_str()),
@@ -91,7 +91,7 @@ impl std::error::Error for Error {
             Hex(e) => Some(e),
             InvalidKeyPrefix(_) | InvalidHexLength(_) => None,
             NotSupported(_) => None,
-            #[cfg(feature = "bls-signatures")]
+            #[cfg(feature = "blsful")]
             BLSError(_) => None,
             #[cfg(feature = "ed25519-dalek")]
             Ed25519Dalek(_) => None,
@@ -221,7 +221,7 @@ impl PublicKey {
     /// `SortKey` is not too useful by itself, but it can be used to sort a
     /// `[PublicKey]` slice using `sort_unstable_by_key`, `sort_by_cached_key`,
     /// `sort_by_key`, or any of the other `*_by_key` methods on slice.
-    /// Pass the method into the sort method directly. (ie. `PublicKey::to_sort_key`)
+    /// Pass the method into the sort method directly. (i.e. `PublicKey::to_sort_key`)
     ///
     /// This method of sorting is in line with Dash Core's implementation of
     /// sorting keys for output descriptors such as `sortedmulti()`.
@@ -391,16 +391,23 @@ impl PrivateKey {
     }
 
     /// Deserialize a private key from a slice
+    #[deprecated(since = "0.40.0", note = "Use `from_byte_array` instead.")]
     pub fn from_slice(data: &[u8], network: Network) -> Result<PrivateKey, Error> {
+        #[allow(deprecated)]
         Ok(PrivateKey::new(secp256k1::SecretKey::from_slice(data)?, network))
     }
 
+    pub fn from_byte_array(data: &[u8; 32], network: Network) -> Result<PrivateKey, Error> {
+        Ok(PrivateKey::new(secp256k1::SecretKey::from_byte_array(data)?, network))
+    }
+
     /// Format the private key to WIF format.
-    pub fn fmt_wif(&self, fmt: &mut dyn fmt::Write) -> fmt::Result {
+    pub fn fmt_wif(&self, fmt: &mut dyn Write) -> fmt::Result {
         let mut ret = [0; 34];
         ret[0] = match self.network {
             Network::Dash => 204,
             Network::Testnet | Network::Devnet | Network::Regtest => 239,
+            _ => 239,
         };
         ret[1..33].copy_from_slice(&self.inner[..]);
         let privkey = if self.compressed {
@@ -443,7 +450,9 @@ impl PrivateKey {
         Ok(PrivateKey {
             compressed,
             network,
-            inner: secp256k1::SecretKey::from_slice(&data[1..33])?,
+            inner: secp256k1::SecretKey::from_byte_array(
+                <&[u8; 32]>::try_from(&data[1..33]).expect("expected 32 bytes"),
+            )?,
         })
     }
 }
@@ -490,8 +499,15 @@ impl<'de> serde::Deserialize<'de> for PrivateKey {
         impl<'de> serde::de::Visitor<'de> for WifVisitor {
             type Value = PrivateKey;
 
-            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("an ASCII WIF string")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                PrivateKey::from_str(v).map_err(E::custom)
             }
 
             fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
@@ -501,15 +517,8 @@ impl<'de> serde::Deserialize<'de> for PrivateKey {
                 if let Ok(s) = core::str::from_utf8(v) {
                     PrivateKey::from_str(s).map_err(E::custom)
                 } else {
-                    Err(E::invalid_value(::serde::de::Unexpected::Bytes(v), &self))
+                    Err(E::invalid_value(serde::de::Unexpected::Bytes(v), &self))
                 }
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                PrivateKey::from_str(v).map_err(E::custom)
             }
         }
 
@@ -538,8 +547,15 @@ impl<'de> serde::Deserialize<'de> for PublicKey {
             impl<'de> serde::de::Visitor<'de> for HexVisitor {
                 type Value = PublicKey;
 
-                fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                     formatter.write_str("an ASCII hex string")
+                }
+
+                fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+                where
+                    E: serde::de::Error,
+                {
+                    PublicKey::from_str(v).map_err(E::custom)
                 }
 
                 fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
@@ -549,15 +565,8 @@ impl<'de> serde::Deserialize<'de> for PublicKey {
                     if let Ok(hex) = core::str::from_utf8(v) {
                         PublicKey::from_str(hex).map_err(E::custom)
                     } else {
-                        Err(E::invalid_value(::serde::de::Unexpected::Bytes(v), &self))
+                        Err(E::invalid_value(serde::de::Unexpected::Bytes(v), &self))
                     }
-                }
-
-                fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-                where
-                    E: serde::de::Error,
-                {
-                    PublicKey::from_str(v).map_err(E::custom)
                 }
             }
             d.deserialize_str(HexVisitor)
@@ -567,7 +576,7 @@ impl<'de> serde::Deserialize<'de> for PublicKey {
             impl<'de> serde::de::Visitor<'de> for BytesVisitor {
                 type Value = PublicKey;
 
-                fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                     formatter.write_str("a bytestring")
                 }
 
@@ -590,7 +599,6 @@ pub type UntweakedPublicKey = XOnlyPublicKey;
 /// Tweaked BIP-340 X-coord-only public key
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct TweakedPublicKey(XOnlyPublicKey);
 
@@ -626,7 +634,6 @@ pub type UntweakedKeyPair = Keypair;
 /// ```
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct TweakedKeyPair(Keypair);
 
@@ -707,7 +714,7 @@ impl TapTweak for UntweakedKeyPair {
     ///  * p is the internal private key
     ///  * H is the hash function
     ///  * c is the commitment data
-    /// The public key is generated from a private key by multiplying with generator point, Q = qG.
+    ///    The public key is generated from a private key by multiplying with generator point, Q = qG.
     ///
     /// # Returns
     /// The tweaked key and its parity.
@@ -815,7 +822,7 @@ mod tests {
     use super::*;
     use crate::address::Address;
     use crate::io;
-    use crate::network::constants::Network::{Dash, Testnet};
+    use dash_network::Network::{Dash, Testnet};
 
     #[test]
     fn test_key_derivation() {

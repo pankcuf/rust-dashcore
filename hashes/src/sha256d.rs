@@ -19,7 +19,7 @@ use core::ops::Index;
 use core::slice::SliceIndex;
 use core::str;
 
-use crate::{Error, sha256};
+use crate::{sha256, Error};
 
 crate::internal_macros::hash_type! {
     256,
@@ -46,7 +46,7 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test() {
-        use crate::{Hash, HashEngine, sha256, sha256d};
+        use crate::{sha256, sha256d, Hash, HashEngine};
 
         #[derive(Clone)]
         struct Test {
@@ -97,9 +97,9 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn sha256_serde() {
-        use serde_test::{Configure, Token, assert_tokens};
+        use serde_test::{assert_tokens, Configure, Token};
 
-        use crate::{Hash, sha256d};
+        use crate::{sha256d, Hash};
 
         #[rustfmt::skip]
         static HASH_BYTES: [u8; 32] = [
@@ -115,42 +115,5 @@ mod tests {
             &hash.readable(),
             &[Token::Str("6cfb35868c4465b7c289d7d5641563aa973db6a929655282a7bf95c8257f53ef")],
         );
-    }
-}
-
-#[cfg(bench)]
-mod benches {
-    use test::Bencher;
-
-    use crate::{Hash, HashEngine, sha256d};
-
-    #[bench]
-    pub fn sha256d_10(bh: &mut Bencher) {
-        let mut engine = sha256d::Hash::engine();
-        let bytes = [1u8; 10];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
-    }
-
-    #[bench]
-    pub fn sha256d_1k(bh: &mut Bencher) {
-        let mut engine = sha256d::Hash::engine();
-        let bytes = [1u8; 1024];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
-    }
-
-    #[bench]
-    pub fn sha256d_64k(bh: &mut Bencher) {
-        let mut engine = sha256d::Hash::engine();
-        let bytes = [1u8; 65536];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
     }
 }

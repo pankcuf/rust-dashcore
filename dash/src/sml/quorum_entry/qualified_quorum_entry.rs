@@ -4,15 +4,15 @@ use crate::sml::llmq_entry_verification::{
     LLMQEntryVerificationSkipStatus, LLMQEntryVerificationStatus,
 };
 use crate::sml::quorum_validation_error::QuorumValidationError;
-use crate::blockdata::transaction::special_transaction::quorum_commitment::QuorumEntry;
+use crate::transaction::special_transaction::quorum_commitment::QuorumEntry;
 #[cfg(feature = "bincode")]
 use bincode::{Decode, Encode};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
+#[allow(clippy::large_enum_variant)]
 pub enum VerifyingChainLockSignaturesType {
     Rotating([BLSSignature; 4]),
     NonRotating(BLSSignature),
@@ -24,7 +24,6 @@ pub enum VerifyingChainLockSignaturesType {
 /// status of the quorum, as well as its computed commitment and entry hashes.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
 pub struct QualifiedQuorumEntry {

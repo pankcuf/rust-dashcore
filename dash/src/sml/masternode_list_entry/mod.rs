@@ -15,7 +15,6 @@ use crate::internal_macros::impl_consensus_encoding;
 #[derive(Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
 pub enum EntryMasternodeType {
     Regular,
@@ -93,8 +92,6 @@ impl_consensus_encoding!(OperatorPublicKey, data, version);
 #[derive(Clone, Eq, PartialEq, Debug)]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
-#[cfg_attr(feature = "apple", ferment_macro::export)]
 pub struct MasternodeListEntry {
     pub version: u16,
     pub pro_reg_tx_hash: ProTxHash,

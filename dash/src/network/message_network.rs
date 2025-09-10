@@ -34,7 +34,6 @@ use crate::network::constants::{self, ServiceFlags};
 use crate::prelude::*;
 
 /// Some simple messages
-
 /// The `version` message
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct VersionMessage {
@@ -68,6 +67,7 @@ pub struct VersionMessage {
 
 impl VersionMessage {
     /// Constructs a new `version` message with `relay` set to false
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         services: ServiceFlags,
         timestamp: i64,
@@ -76,6 +76,7 @@ impl VersionMessage {
         nonce: u64,
         user_agent: String,
         start_height: i32,
+        relay: bool,
         mn_auth_challenge: [u8; 32],
     ) -> VersionMessage {
         VersionMessage {
@@ -87,7 +88,7 @@ impl VersionMessage {
             nonce,
             user_agent,
             start_height,
-            relay: false,
+            relay,
             mn_auth_challenge,
             masternode_connection: false,
         }
@@ -132,7 +133,7 @@ impl Decodable for VersionMessage {
         };
 
         let mut mn_auth_challenge = [0u8; 32];
-        if let Ok(_) = reader.read_exact(&mut mn_auth_challenge) {
+        if reader.read_exact(&mut mn_auth_challenge).is_ok() {
             // Successfully read challenge
         } else {
             mn_auth_challenge = [0; 32]; // Default value

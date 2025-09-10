@@ -52,7 +52,6 @@ use crate::io;
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
 pub struct ProviderUpdateRevocationPayload {
     pub version: u16,

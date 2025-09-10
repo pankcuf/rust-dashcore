@@ -54,7 +54,7 @@ pub(crate) use arr_newtype_fmt_impl;
 ///
 /// * `$bits` - number of bits this hash type has
 /// * `$reverse` - `bool`  - `true` if the hash type should be displayed backwards, `false`
-///    otherwise.
+///   otherwise.
 /// * `$gen: $gent` - generic type(s) and trait bound(s)
 ///
 /// Restrictions on usage:
@@ -134,8 +134,8 @@ macro_rules! hash_trait_impls {
             }
         }
 
-        impl<$($gen: $gent),*> Into<[u8; $bits / 8]> for Hash<$($gen),*> {
-            fn into(self) -> [u8; $bits / 8] { self.0 }
+        impl<$($gen: $gent),*> From<Hash<$($gen),*>> for [u8; $bits / 8] {
+            fn from(value: Hash<$($gen),*>) -> Self { value.0 }
         }
 
         #[cfg(feature = "bincode")]
@@ -160,7 +160,6 @@ macro_rules! hash_trait_impls {
         #[cfg(feature = "bincode")]
         impl<'de, $($gen: $gent),*> bincode::BorrowDecode<'de> for Hash<$($gen),*> {
             fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(decoder: &mut D) -> Result<Self, bincode::error::DecodeError> {
-                use crate::Hash;
                 use std::convert::TryInto;
                 // Decode a borrowed reference to a byte slice
                 let bytes: &[u8] = bincode::BorrowDecode::borrow_decode(decoder)?;

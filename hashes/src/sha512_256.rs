@@ -29,7 +29,7 @@ use core::slice::SliceIndex;
 use core::str;
 
 use crate::sha512::BLOCK_SIZE;
-use crate::{Error, sha512};
+use crate::{sha512, Error};
 
 /// Engine to compute SHA512/256 hash function.
 ///
@@ -90,7 +90,7 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test() {
-        use crate::{Hash, HashEngine, sha512_256};
+        use crate::{sha512_256, Hash, HashEngine};
 
         #[derive(Clone)]
         struct Test {
@@ -170,42 +170,5 @@ mod tests {
             assert_eq!(hash, manual_hash);
             assert_eq!(hash.to_byte_array()[..].as_ref(), test.output.as_slice());
         }
-    }
-}
-
-#[cfg(bench)]
-mod benches {
-    use test::Bencher;
-
-    use crate::{Hash, HashEngine, sha512_256};
-
-    #[bench]
-    pub fn sha512_256_10(bh: &mut Bencher) {
-        let mut engine = sha512_256::Hash::engine();
-        let bytes = [1u8; 10];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
-    }
-
-    #[bench]
-    pub fn sha512_256_1k(bh: &mut Bencher) {
-        let mut engine = sha512_256::Hash::engine();
-        let bytes = [1u8; 1024];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
-    }
-
-    #[bench]
-    pub fn sha512_256_64k(bh: &mut Bencher) {
-        let mut engine = sha512_256::Hash::engine();
-        let bytes = [1u8; 65536];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
     }
 }

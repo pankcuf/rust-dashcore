@@ -31,7 +31,6 @@ use crate::hash_types::{PubkeyHash, ScriptHash};
 /// A transaction output, which defines new coins to be created from old ones.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
 pub struct TxOut {
@@ -53,7 +52,7 @@ impl Default for TxOut {
 }
 
 impl TxOut {
-    ///
+    /// Returns the size of this output in bytes.
     pub fn size(&self) -> usize {
         8 + VarInt(self.script_pubkey.len() as u64).len() + self.script_pubkey.len()
     }

@@ -52,9 +52,10 @@ pub enum Error {
     // TODO: Remove this as part of crate-smashing, there should not be any key related errors in this module
     Hex(hex::Error),
 
-    /// bls signatures related error
-    #[cfg(feature = "bls-signatures")]
+    /// blsful related error
+    #[cfg(feature = "blsful")]
     BLSError(String),
+
     /// edwards 25519 related error
     #[cfg(feature = "ed25519-dalek")]
     Ed25519Dalek(String),
@@ -80,7 +81,7 @@ impl fmt::Display for Error {
             Error::TooShort(_) => write!(f, "base58ck data not even long enough for a checksum"),
             Error::Secp256k1(ref e) => fmt::Display::fmt(&e, f),
             Error::Hex(ref e) => write!(f, "Hexadecimal decoding error: {}", e),
-            #[cfg(feature = "bls-signatures")]
+            #[cfg(feature = "blsful")]
             Error::BLSError(ref e) => write!(f, "BLS error: {}", e),
             #[cfg(feature = "ed25519-dalek")]
             Error::Ed25519Dalek(ref e) => write!(f, "Ed25519-Dalek error: {}", e),
@@ -90,7 +91,7 @@ impl fmt::Display for Error {
 }
 
 #[cfg(feature = "std")]
-impl ::std::error::Error for Error {}
+impl std::error::Error for Error {}
 
 /// Vector-like object that holds the first 100 elements on the stack. If more space is needed it
 /// will be allocated on the heap.
@@ -118,12 +119,12 @@ impl<T: Default + Copy> SmallVec<T> {
         }
     }
 
-    pub fn iter(&self) -> iter::Chain<slice::Iter<T>, slice::Iter<T>> {
+    pub fn iter(&self) -> iter::Chain<slice::Iter<'_, T>, slice::Iter<'_, T>> {
         // If len<100 then we just append an empty vec
         self.stack[0..self.len].iter().chain(self.heap.iter())
     }
 
-    pub fn iter_mut(&mut self) -> iter::Chain<slice::IterMut<T>, slice::IterMut<T>> {
+    pub fn iter_mut(&mut self) -> iter::Chain<slice::IterMut<'_, T>, slice::IterMut<'_, T>> {
         // If len<100 then we just append an empty vec
         self.stack[0..self.len].iter_mut().chain(self.heap.iter_mut())
     }
@@ -422,7 +423,7 @@ impl From<key::Error> for Error {
             key::Error::InvalidKeyPrefix(_) => Error::Secp256k1(secp256k1::Error::InvalidPublicKey),
             key::Error::Hex(e) => Error::Hex(e),
             key::Error::InvalidHexLength(size) => Error::InvalidLength(size),
-            #[cfg(feature = "bls-signatures")]
+            #[cfg(feature = "blsful")]
             key::Error::BLSError(e) => Error::BLSError(e),
             #[cfg(feature = "ed25519-dalek")]
             key::Error::Ed25519Dalek(e) => Error::Ed25519Dalek(e),

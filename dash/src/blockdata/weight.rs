@@ -11,7 +11,6 @@ use crate::prelude::*;
 /// up the types as well as basic formatting features.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "serde", serde(transparent))]
 pub struct Weight(u64);
 
@@ -82,7 +81,7 @@ impl Weight {
 
     /// Converts to vB rounding up.
     pub const fn to_vbytes_ceil(self) -> u64 {
-        (self.0 + 3) / 4
+        self.0.div_ceil(4)
     }
 
     /// Checked addition.

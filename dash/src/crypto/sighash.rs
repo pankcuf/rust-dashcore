@@ -305,10 +305,10 @@ where
     T: Borrow<TxOut>,
 {
     fn check_all(&self, tx: &Transaction) -> Result<(), Error> {
-        if let Prevouts::All(prevouts) = self {
-            if prevouts.len() != tx.input.len() {
-                return Err(Error::PrevoutsSize);
-            }
+        if let Prevouts::All(prevouts) = self
+            && prevouts.len() != tx.input.len()
+        {
+            return Err(Error::PrevoutsSize);
         }
         Ok(())
     }
@@ -892,8 +892,8 @@ impl<R: Borrow<Transaction>> SighashCache<R> {
     /// # Warning
     ///
     /// - Does NOT attempt to support OP_CODESEPARATOR. In general this would require evaluating
-    /// `script_pubkey` to determine which separators get evaluated and which don't, which we don't
-    /// have the information to determine.
+    ///   `script_pubkey` to determine which separators get evaluated and which don't, which we don't
+    ///   have the information to determine.
     /// - Does NOT handle the sighash single bug (see "Return type" section)
     ///
     /// # Returns
@@ -1183,8 +1183,8 @@ mod tests {
     use crate::crypto::key::PublicKey;
     use crate::crypto::sighash::{LegacySighash, TapSighash};
     use crate::internal_macros::hex;
-    use crate::network::constants::Network;
     use crate::taproot::TapLeafHash;
+    use dash_network::Network;
 
     #[test]
     fn sighash_single_bug() {
@@ -1534,9 +1534,9 @@ mod tests {
     fn bip_341_sighash_tests() {
         fn sighash_deser_numeric<'de, D>(deserializer: D) -> Result<TapSighashType, D::Error>
         where
-            D: actual_serde::Deserializer<'de>,
+            D: serde::Deserializer<'de>,
         {
-            use actual_serde::de::{Deserialize, Error, Unexpected};
+            use serde::de::{Deserialize, Error, Unexpected};
 
             let raw = u8::deserialize(deserializer)?;
             TapSighashType::from_consensus_u8(raw).map_err(|_| {
@@ -1553,7 +1553,7 @@ mod tests {
         use crate::taproot::{TapNodeHash, TapTweakHash};
 
         #[derive(serde::Deserialize)]
-        #[serde(crate = "actual_serde")]
+
         struct UtxoSpent {
             #[serde(rename = "scriptPubKey")]
             script_pubkey: ScriptBuf,
@@ -1563,7 +1563,6 @@ mod tests {
 
         #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
-        #[serde(crate = "actual_serde")]
         struct KpsGiven {
             #[serde(with = "con_serde::With::<con_serde::Hex>")]
             raw_unsigned_tx: Transaction,
@@ -1572,7 +1571,6 @@ mod tests {
 
         #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
-        #[serde(crate = "actual_serde")]
         struct KpsIntermediary {
             hash_prevouts: sha256::Hash,
             hash_outputs: sha256::Hash,
@@ -1583,7 +1581,6 @@ mod tests {
 
         #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
-        #[serde(crate = "actual_serde")]
         struct KpsInputSpendingGiven {
             txin_index: usize,
             internal_privkey: SecretKey,
@@ -1594,7 +1591,6 @@ mod tests {
 
         #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
-        #[serde(crate = "actual_serde")]
         struct KpsInputSpendingIntermediary {
             internal_pubkey: XOnlyPublicKey,
             tweak: TapTweakHash,
@@ -1606,14 +1602,12 @@ mod tests {
 
         #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
-        #[serde(crate = "actual_serde")]
         struct KpsInputSpendingExpected {
             witness: Vec<String>,
         }
 
         #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
-        #[serde(crate = "actual_serde")]
         struct KpsInputSpending {
             given: KpsInputSpendingGiven,
             intermediary: KpsInputSpendingIntermediary,
@@ -1623,7 +1617,6 @@ mod tests {
 
         #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
-        #[serde(crate = "actual_serde")]
         struct KeyPathSpending {
             given: KpsGiven,
             intermediary: KpsIntermediary,
@@ -1632,7 +1625,6 @@ mod tests {
 
         #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
-        #[serde(crate = "actual_serde")]
         struct TestData {
             version: u64,
             key_path_spending: Vec<KeyPathSpending>,

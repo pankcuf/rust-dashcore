@@ -45,7 +45,9 @@ fn from_engine(e: HashEngine) -> Hash {
 }
 
 macro_rules! compress {
-    ($state:expr) => {{ compress!($state.v0, $state.v1, $state.v2, $state.v3) }};
+    ($state:expr) => {{
+        compress!($state.v0, $state.v1, $state.v2, $state.v3)
+    }};
     ($v0:expr, $v1:expr, $v2:expr, $v3:expr) => {{
         $v0 = $v0.wrapping_add($v1);
         $v1 = $v1.rotate_left(13);
@@ -73,11 +75,13 @@ macro_rules! load_int_le {
     ($buf:expr, $i:expr, $int_ty:ident) => {{
         debug_assert!($i + mem::size_of::<$int_ty>() <= $buf.len());
         let mut data = 0 as $int_ty;
-        ptr::copy_nonoverlapping(
-            $buf.get_unchecked($i),
-            &mut data as *mut _ as *mut u8,
-            mem::size_of::<$int_ty>(),
-        );
+        unsafe {
+            ptr::copy_nonoverlapping(
+                $buf.get_unchecked($i),
+                &mut data as *mut _ as *mut u8,
+                mem::size_of::<$int_ty>(),
+            );
+        }
         data.to_le()
     }};
 }
@@ -191,7 +195,7 @@ impl crate::HashEngine for HashEngine {
 
         let mut i = needed;
         while i < len - left {
-            let mi = unsafe { load_int_le!(msg, i, u64) };
+            let mi = load_int_le!(msg, i, u64);
 
             self.state.v3 ^= mi;
             HashEngine::c_rounds(&mut self.state);
@@ -269,7 +273,7 @@ unsafe fn u8to64_le(buf: &[u8], start: usize, len: usize) -> u64 {
         i += 2
     }
     if i < len {
-        out |= u64::from(*buf.get_unchecked(start + i)) << (i * 8);
+        out |= u64::from(unsafe { *buf.get_unchecked(start + i) }) << (i * 8);
         i += 1;
     }
     debug_assert_eq!(i, len);
@@ -365,54 +369,5 @@ mod tests {
             assert_eq!(vec, inc, "vec #{}", i);
             state_inc.input(&[i as u8]);
         }
-    }
-}
-
-#[cfg(bench)]
-mod benches {
-    use test::Bencher;
-
-    use crate::{Hash, HashEngine, siphash24};
-
-    #[bench]
-    pub fn siphash24_1ki(bh: &mut Bencher) {
-        let mut engine = siphash24::Hash::engine();
-        let bytes = [1u8; 1024];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
-    }
-
-    #[bench]
-    pub fn siphash24_64ki(bh: &mut Bencher) {
-        let mut engine = siphash24::Hash::engine();
-        let bytes = [1u8; 65536];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
-    }
-
-    #[bench]
-    pub fn siphash24_1ki_hash(bh: &mut Bencher) {
-        let k0 = 0x_07_06_05_04_03_02_01_00;
-        let k1 = 0x_0f_0e_0d_0c_0b_0a_09_08;
-        let bytes = [1u8; 1024];
-        bh.iter(|| {
-            let _ = siphash24::Hash::hash_with_keys(k0, k1, &bytes);
-        });
-        bh.bytes = bytes.len() as u64;
-    }
-
-    #[bench]
-    pub fn siphash24_1ki_hash_u64(bh: &mut Bencher) {
-        let k0 = 0x_07_06_05_04_03_02_01_00;
-        let k1 = 0x_0f_0e_0d_0c_0b_0a_09_08;
-        let bytes = [1u8; 1024];
-        bh.iter(|| {
-            let _ = siphash24::Hash::hash_to_u64_with_keys(k0, k1, &bytes);
-        });
-        bh.bytes = bytes.len() as u64;
     }
 }

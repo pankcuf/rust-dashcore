@@ -1,6 +1,7 @@
 use hashes::Hash;
 
 use crate::hash_types::QuorumOrderingHash;
+use crate::sml::llmq_type::network::NetworkLLMQExt;
 use crate::sml::masternode_list::MasternodeList;
 use crate::sml::masternode_list_engine::MasternodeListEngine;
 use crate::sml::message_verification_error::MessageVerificationError;
@@ -179,7 +180,8 @@ impl MasternodeListEngine {
         chain_lock: &ChainLock,
     ) -> Result<Option<&QualifiedQuorumEntry>, MessageVerificationError> {
         // Retrieve the masternode list at or before (block_height - 8)
-        let (before, _) = self.masternode_lists_around_height(chain_lock.block_height - 8);
+        let (before, _) =
+            self.masternode_lists_around_height(chain_lock.block_height.saturating_sub(8));
 
         // Compute the signing request ID
         let request_id = chain_lock.request_id().map_err(|e| e.to_string())?;
@@ -219,7 +221,8 @@ impl MasternodeListEngine {
         chain_lock: &ChainLock,
     ) -> Result<Option<&QualifiedQuorumEntry>, MessageVerificationError> {
         // Retrieve the masternode list after (block_height - 8)
-        let (_, after) = self.masternode_lists_around_height(chain_lock.block_height - 8);
+        let (_, after) =
+            self.masternode_lists_around_height(chain_lock.block_height.saturating_sub(8));
 
         // Compute the signing request ID
         let request_id = chain_lock.request_id().map_err(|e| e.to_string())?;
@@ -265,7 +268,8 @@ impl MasternodeListEngine {
         chain_lock: &ChainLock,
     ) -> Result<(), MessageVerificationError> {
         // Retrieve masternode lists surrounding the signing height (block_height - 8)
-        let (before, after) = self.masternode_lists_around_height(chain_lock.block_height - 8);
+        let (before, after) =
+            self.masternode_lists_around_height(chain_lock.block_height.saturating_sub(8));
 
         if before.is_none() && after.is_none() {
             return Err(MessageVerificationError::NoMasternodeLists);
@@ -276,7 +280,7 @@ impl MasternodeListEngine {
         // Attempt verification using the "before" masternode list
         let initial_error = if let Some(before) = before {
             let Err(e) =
-                self.verify_chain_lock_with_masternode_list(chain_lock, &before, &request_id)
+                self.verify_chain_lock_with_masternode_list(chain_lock, before, &request_id)
             else {
                 return Ok(());
             };
@@ -297,15 +301,9 @@ impl MasternodeListEngine {
                 true
             };
             if do_check {
-                return self.verify_chain_lock_with_masternode_list(
-                    chain_lock,
-                    &after,
-                    &request_id,
-                );
-            } else {
-                if let Some(initial_error) = initial_error {
-                    return Err(initial_error);
-                }
+                return self.verify_chain_lock_with_masternode_list(chain_lock, after, &request_id);
+            } else if let Some(initial_error) = initial_error {
+                return Err(initial_error);
             }
         }
 

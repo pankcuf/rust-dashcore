@@ -522,6 +522,9 @@ impl<'a, R: io::Read> BitStreamReader<'a, R> {
     /// ```
     pub fn read(&mut self, mut nbits: u8) -> Result<u64, io::Error> {
         if nbits > 64 {
+            #[cfg(feature = "std")]
+            return Err(io::Error::other("can not read more than 64 bits at once"));
+            #[cfg(not(feature = "std"))]
             return Err(io::Error::new(
                 io::ErrorKind::Other,
                 "can not read more than 64 bits at once",
@@ -563,6 +566,9 @@ impl<'a, W: io::Write> BitStreamWriter<'a, W> {
     /// Writes nbits bits from data.
     pub fn write(&mut self, data: u64, mut nbits: u8) -> Result<usize, io::Error> {
         if nbits > 64 {
+            #[cfg(feature = "std")]
+            return Err(io::Error::other("can not write more than 64 bits at once"));
+            #[cfg(not(feature = "std"))]
             return Err(io::Error::new(
                 io::ErrorKind::Other,
                 "can not write more than 64 bits at once",
@@ -606,10 +612,9 @@ mod test {
     use crate::hash_types::BlockHash;
     use crate::internal_macros::hex;
 
-    #[ignore]
     #[test]
     fn test_blockfilters() {
-        // test vectors from: https://github.com/jimpo/bitcoin/blob/c7efb652f3543b001b4dd22186a354605b14f47e/src/test/data/blockfilters.json
+        // test vectors from: https://github.com/dashpay/dash/blob/436872aaec86edad3c6243aecd2549453608d0c1/src/test/data/blockfilters.json
         let data = include_str!("../tests/data/blockfilters.json");
 
         let testdata = serde_json::from_str::<Value>(data).unwrap().as_array().unwrap().clone();

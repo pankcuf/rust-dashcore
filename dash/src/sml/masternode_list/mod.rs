@@ -24,7 +24,6 @@ use crate::sml::quorum_entry::qualified_quorum_entry::QualifiedQuorumEntry;
 #[derive(Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
 pub struct MasternodeList {
     pub block_hash: BlockHash,

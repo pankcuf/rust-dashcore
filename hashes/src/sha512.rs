@@ -273,7 +273,7 @@ mod tests {
     #[test]
     #[cfg(feature = "alloc")]
     fn test() {
-        use crate::{Hash, HashEngine, sha512};
+        use crate::{sha512, Hash, HashEngine};
 
         #[derive(Clone)]
         struct Test {
@@ -350,9 +350,9 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn sha512_serde() {
-        use serde_test::{Configure, Token, assert_tokens};
+        use serde_test::{assert_tokens, Configure, Token};
 
-        use crate::{Hash, sha512};
+        use crate::{sha512, Hash};
 
         #[rustfmt::skip]
         static HASH_BYTES: [u8; 64] = [
@@ -375,42 +375,5 @@ mod tests {
                  fffb8088ccf85497121ad4499e0845b876f6dd6640088a2f0b2d8a600bdf4c0c",
             )],
         );
-    }
-}
-
-#[cfg(bench)]
-mod benches {
-    use test::Bencher;
-
-    use crate::{Hash, HashEngine, sha512};
-
-    #[bench]
-    pub fn sha512_10(bh: &mut Bencher) {
-        let mut engine = sha512::Hash::engine();
-        let bytes = [1u8; 10];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
-    }
-
-    #[bench]
-    pub fn sha512_1k(bh: &mut Bencher) {
-        let mut engine = sha512::Hash::engine();
-        let bytes = [1u8; 1024];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
-    }
-
-    #[bench]
-    pub fn sha512_64k(bh: &mut Bencher) {
-        let mut engine = sha512::Hash::engine();
-        let bytes = [1u8; 65536];
-        bh.iter(|| {
-            engine.input(&bytes);
-        });
-        bh.bytes = bytes.len() as u64;
     }
 }

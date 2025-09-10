@@ -29,10 +29,11 @@ use crate::io;
 use crate::merkle_tree::MerkleBlock;
 use crate::network::address::{AddrV2Message, Address};
 use crate::network::{
-    message_blockdata, message_bloom, message_compact_blocks, message_filter, message_network,
-    message_qrinfo, message_sml,
+    message_blockdata, message_bloom, message_compact_blocks, message_filter, message_headers2,
+    message_network, message_qrinfo, message_sml,
 };
 use crate::prelude::*;
+use crate::{ChainLock, InstantLock};
 
 /// The maximum number of [super::message_blockdata::Inventory] items in an `inv` message.
 ///
@@ -175,6 +176,7 @@ pub struct RawNetworkMessage {
 /// A Network message payload. Proper documentation is available on at
 /// [Bitcoin Wiki: Protocol Specification](https://en.bitcoin.it/wiki/Protocol_specification)
 #[derive(Clone, PartialEq, Eq, Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum NetworkMessage {
     /// `version`
     Version(message_network::VersionMessage),
@@ -202,6 +204,12 @@ pub enum NetworkMessage {
     Headers(Vec<block::Header>),
     /// `sendheaders`
     SendHeaders,
+    /// `getheaders2`
+    GetHeaders2(message_blockdata::GetHeadersMessage),
+    /// `sendheaders2`
+    SendHeaders2,
+    /// `headers2`
+    Headers2(message_headers2::Headers2Message),
     /// `getaddr`
     GetAddr,
     // TODO: checkorder,
@@ -259,6 +267,12 @@ pub enum NetworkMessage {
     GetQRInfo(message_qrinfo::GetQRInfo),
     /// `qrinfo`
     QRInfo(message_qrinfo::QRInfo),
+    /// `clsig`
+    CLSig(ChainLock),
+    /// `isdlock`
+    ISLock(InstantLock),
+    /// `senddsq` - Notify peer whether to send CoinJoin queue messages
+    SendDsq(bool),
     /// Any other message.
     Unknown {
         /// The command of this message.
@@ -289,6 +303,9 @@ impl NetworkMessage {
             NetworkMessage::Block(_) => "block",
             NetworkMessage::Headers(_) => "headers",
             NetworkMessage::SendHeaders => "sendheaders",
+            NetworkMessage::GetHeaders2(_) => "getheaders2",
+            NetworkMessage::SendHeaders2 => "sendheaders2",
+            NetworkMessage::Headers2(_) => "headers2",
             NetworkMessage::GetAddr => "getaddr",
             NetworkMessage::Ping(_) => "ping",
             NetworkMessage::Pong(_) => "pong",
@@ -316,6 +333,9 @@ impl NetworkMessage {
             NetworkMessage::MnListDiff(_) => "mnlistdiff",
             NetworkMessage::GetQRInfo(_) => "getqrinfo",
             NetworkMessage::QRInfo(_) => "qrinfo",
+            NetworkMessage::CLSig(_) => "clsig",
+            NetworkMessage::ISLock(_) => "isdlock",
+            NetworkMessage::SendDsq(_) => "senddsq",
             NetworkMessage::Unknown {
                 ..
             } => "unknown",
@@ -381,6 +401,8 @@ impl Encodable for RawNetworkMessage {
             NetworkMessage::Tx(ref dat) => serialize(dat),
             NetworkMessage::Block(ref dat) => serialize(dat),
             NetworkMessage::Headers(ref dat) => serialize(&HeaderSerializationWrapper(dat)),
+            NetworkMessage::GetHeaders2(ref dat) => serialize(dat),
+            NetworkMessage::Headers2(ref dat) => serialize(dat),
             NetworkMessage::Ping(ref dat) => serialize(dat),
             NetworkMessage::Pong(ref dat) => serialize(dat),
             NetworkMessage::MerkleBlock(ref dat) => serialize(dat),
@@ -402,6 +424,7 @@ impl Encodable for RawNetworkMessage {
             NetworkMessage::AddrV2(ref dat) => serialize(dat),
             NetworkMessage::Verack
             | NetworkMessage::SendHeaders
+            | NetworkMessage::SendHeaders2
             | NetworkMessage::MemPool
             | NetworkMessage::GetAddr
             | NetworkMessage::WtxidRelay
@@ -415,6 +438,9 @@ impl Encodable for RawNetworkMessage {
             NetworkMessage::MnListDiff(ref dat) => serialize(dat),
             NetworkMessage::GetQRInfo(ref dat) => serialize(dat),
             NetworkMessage::QRInfo(ref dat) => serialize(dat),
+            NetworkMessage::CLSig(ref dat) => serialize(dat),
+            NetworkMessage::ISLock(ref dat) => serialize(dat),
+            NetworkMessage::SendDsq(wants_dsq) => serialize(&(wants_dsq as u8)),
         })
         .consensus_encode(w)?;
         Ok(len)
@@ -483,12 +509,42 @@ impl Decodable for RawNetworkMessage {
             ),
             "mempool" => NetworkMessage::MemPool,
             "block" => {
-                NetworkMessage::Block(Decodable::consensus_decode_from_finite_reader(&mut mem_d)?)
+                // First decode just the header to get block hash for error context
+                let header: block::Header =
+                    Decodable::consensus_decode_from_finite_reader(&mut mem_d)?;
+                let block_hash = header.block_hash();
+
+                // Now decode the transactions
+                match Vec::<transaction::Transaction>::consensus_decode_from_finite_reader(
+                    &mut mem_d,
+                ) {
+                    Ok(txdata) => NetworkMessage::Block(block::Block {
+                        header,
+                        txdata,
+                    }),
+                    Err(e) => {
+                        // Include block hash in error message for debugging
+                        return Err(encode::Error::Io(io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            format!(
+                                "Failed to decode transactions for block {}: {}",
+                                block_hash, e
+                            ),
+                        )));
+                    }
+                }
             }
             "headers" => NetworkMessage::Headers(
                 HeaderDeserializationWrapper::consensus_decode_from_finite_reader(&mut mem_d)?.0,
             ),
             "sendheaders" => NetworkMessage::SendHeaders,
+            "getheaders2" => NetworkMessage::GetHeaders2(
+                Decodable::consensus_decode_from_finite_reader(&mut mem_d)?,
+            ),
+            "sendheaders2" => NetworkMessage::SendHeaders2,
+            "headers2" => NetworkMessage::Headers2(Decodable::consensus_decode_from_finite_reader(
+                &mut mem_d,
+            )?),
             "getaddr" => NetworkMessage::GetAddr,
             "ping" => {
                 NetworkMessage::Ping(Decodable::consensus_decode_from_finite_reader(&mut mem_d)?)
@@ -562,6 +618,16 @@ impl Decodable for RawNetworkMessage {
             ),
             "qrinfo" => {
                 NetworkMessage::QRInfo(Decodable::consensus_decode_from_finite_reader(&mut mem_d)?)
+            }
+            "clsig" => {
+                NetworkMessage::CLSig(Decodable::consensus_decode_from_finite_reader(&mut mem_d)?)
+            }
+            "isdlock" => {
+                NetworkMessage::ISLock(Decodable::consensus_decode_from_finite_reader(&mut mem_d)?)
+            }
+            "senddsq" => {
+                let byte: u8 = Decodable::consensus_decode_from_finite_reader(&mut mem_d)?;
+                NetworkMessage::SendDsq(byte != 0)
             }
             _ => NetworkMessage::Unknown {
                 command: cmd,
@@ -908,5 +974,56 @@ mod test {
         } else {
             panic!("Wrong message type");
         }
+    }
+
+    #[test]
+    fn test_senddsq_message_encode_decode() {
+        // Test encoding and decoding SendDsq(true)
+        let msg_true = NetworkMessage::SendDsq(true);
+        let raw_msg = RawNetworkMessage {
+            magic: crate::Network::Dash.magic(),
+            payload: msg_true,
+        };
+
+        // Encode
+        let encoded = serialize(&raw_msg);
+
+        // Decode
+        let decoded: RawNetworkMessage = deserialize(&encoded).unwrap();
+
+        // Verify
+        match decoded.payload {
+            NetworkMessage::SendDsq(wants_dsq) => {
+                assert!(wants_dsq);
+            }
+            _ => panic!("Expected SendDsq message"),
+        }
+
+        // Test encoding and decoding SendDsq(false)
+        let msg_false = NetworkMessage::SendDsq(false);
+        let raw_msg = RawNetworkMessage {
+            magic: crate::Network::Dash.magic(),
+            payload: msg_false,
+        };
+
+        // Encode
+        let encoded = serialize(&raw_msg);
+
+        // Decode
+        let decoded: RawNetworkMessage = deserialize(&encoded).unwrap();
+
+        // Verify
+        match decoded.payload {
+            NetworkMessage::SendDsq(wants_dsq) => {
+                assert!(!wants_dsq);
+            }
+            _ => panic!("Expected SendDsq message"),
+        }
+    }
+
+    #[test]
+    fn test_senddsq_command_string() {
+        let msg = NetworkMessage::SendDsq(true);
+        assert_eq!(msg.cmd(), "senddsq");
     }
 }

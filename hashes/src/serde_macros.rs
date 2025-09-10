@@ -24,7 +24,7 @@ pub mod serde_details {
 
     use crate::Error;
     struct HexVisitor<ValueT>(PhantomData<ValueT>);
-    use serde::{Deserializer, Serializer, de};
+    use serde::{de, Deserializer, Serializer};
 
     impl<'de, ValueT> de::Visitor<'de> for HexVisitor<ValueT>
     where
@@ -44,7 +44,7 @@ pub mod serde_details {
             if let Ok(hex) = str::from_utf8(v) {
                 Self::Value::from_str(hex).map_err(E::custom)
             } else {
-                return Err(E::invalid_value(de::Unexpected::Bytes(v), &self));
+                Err(E::invalid_value(de::Unexpected::Bytes(v), &self))
             }
         }
 

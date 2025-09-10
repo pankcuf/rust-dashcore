@@ -20,7 +20,7 @@ use core::ops::Index;
 use core::slice::SliceIndex;
 use core::{cmp, str};
 
-use crate::{Error, sha256};
+use crate::{sha256, Error};
 
 type HashEngine = sha256::HashEngine;
 
@@ -55,7 +55,7 @@ impl<T: Tag> Hash<T> {
 impl<T: Tag> Copy for Hash<T> {}
 impl<T: Tag> Clone for Hash<T> {
     fn clone(&self) -> Self {
-        Hash(self.0, self.1)
+        *self
     }
 }
 impl<T: Tag> PartialEq for Hash<T> {

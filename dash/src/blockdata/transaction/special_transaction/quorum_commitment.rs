@@ -37,7 +37,6 @@ use crate::sml::quorum_validation_error::QuorumValidationError;
 ///
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
 pub struct QuorumEntry {
@@ -127,10 +126,10 @@ impl Encodable for QuorumEntry {
         len += self.version.consensus_encode(w)?;
         len += self.llmq_type.consensus_encode(w)?;
         len += self.quorum_hash.consensus_encode(w)?;
-        if let Some(q_index) = self.quorum_index {
-            if self.version == 2 || self.version == 4 {
-                len += q_index.consensus_encode(w)?;
-            }
+        if let Some(q_index) = self.quorum_index
+            && (self.version == 2 || self.version == 4)
+        {
+            len += q_index.consensus_encode(w)?;
         }
         len += write_compact_size(w, self.signers.len() as u32)?;
         len += write_fixed_bitset(w, self.signers.as_slice(), self.signers.iter().len())?;
@@ -186,7 +185,6 @@ impl Decodable for QuorumEntry {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(crate = "actual_serde"))]
 #[cfg_attr(feature = "apple", ferment_macro::export)]
 pub struct QuorumCommitmentPayload {
     pub version: u16,
