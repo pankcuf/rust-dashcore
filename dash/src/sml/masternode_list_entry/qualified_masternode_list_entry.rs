@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 #[cfg(feature = "bincode")]
 use bincode::{Decode, Encode};
-use hashes::{Hash, sha256d};
+use hashes::Hash;
 use crate::hash_types::{ConfirmedHashHashedWithProRegTx, Sha256dHash};
 use crate::sml::masternode_list_entry::MasternodeListEntry;
 

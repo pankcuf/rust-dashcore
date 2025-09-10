@@ -15,6 +15,7 @@ use std::collections::BTreeMap;
 use bincode::{Decode, Encode};
 pub use builder::MasternodeListBuilder;
 
+use crate::bls_sig_utils::BLSPublicKey;
 use crate::hash_types::{MerkleRootMasternodeList, MerkleRootQuorums};
 use crate::sml::llmq_type::LLMQType;
 use crate::sml::masternode_list_entry::qualified_masternode_list_entry::QualifiedMasternodeListEntry;
