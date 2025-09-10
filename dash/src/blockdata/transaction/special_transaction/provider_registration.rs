@@ -42,14 +42,12 @@ use hashes::Hash;
 use internals::hex::Case::Lower;
 
 use crate::address::Payload;
-use crate::blockdata::script::ScriptBuf;
-use crate::blockdata::transaction::OutPoint;
 use crate::blockdata::transaction::special_transaction::SpecialTransactionBasePayloadEncodable;
 use crate::bls_sig_utils::BLSPublicKey;
 use crate::consensus::{Decodable, Encodable, encode};
 use crate::hash_types::{InputsHash, PubkeyHash, SpecialTransactionPayloadHash};
 use crate::prelude::*;
-use crate::{Address, Network, VarInt, io};
+use crate::{Address, Network, OutPoint, ScriptBuf, VarInt, io};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Copy)]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]

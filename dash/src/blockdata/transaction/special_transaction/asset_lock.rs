@@ -27,7 +27,7 @@ use bincode::{Decode, Encode};
 
 use crate::consensus::{Decodable, Encodable, encode};
 use crate::prelude::*;
-use crate::blockdata::transaction::txout::TxOut;
+use crate::transaction::txout::TxOut;
 use crate::{VarInt, io};
 
 /// An Asset Lock payload. This is contained as the payload of an asset lock special transaction.

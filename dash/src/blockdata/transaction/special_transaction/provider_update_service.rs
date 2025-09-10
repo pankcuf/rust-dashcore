@@ -37,13 +37,12 @@
 #[cfg(feature = "bincode")]
 use bincode::{Decode, Encode};
 use hashes::Hash;
-use crate::blockdata::script::ScriptBuf;
 use crate::blockdata::transaction::special_transaction::SpecialTransactionBasePayloadEncodable;
 use crate::blockdata::transaction::special_transaction::provider_registration::ProviderMasternodeType;
 use crate::bls_sig_utils::BLSSignature;
 use crate::consensus::{Decodable, Encodable, encode};
 use crate::hash_types::{InputsHash, SpecialTransactionPayloadHash, Txid};
-use crate::{VarInt, io};
+use crate::{ScriptBuf, VarInt, io};
 
 /// ProTx version constants
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

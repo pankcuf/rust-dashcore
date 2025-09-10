@@ -57,13 +57,11 @@ use crate::network::{
 use crate::prelude::*;
 use crate::sml::masternode_list_entry::MasternodeListEntry;
 use crate::taproot::TapLeafHash;
-use crate::blockdata::script::ScriptBuf;
-use crate::blockdata::transaction::OutPoint;
-use crate::blockdata::transaction::special_transaction::TransactionType;
-use crate::blockdata::transaction::special_transaction::quorum_commitment::QuorumEntry;
-use crate::blockdata::transaction::txin::TxIn;
-use crate::blockdata::transaction::txout::TxOut;
-use crate::address;
+use crate::transaction::special_transaction::TransactionType;
+use crate::transaction::special_transaction::quorum_commitment::QuorumEntry;
+use crate::transaction::txin::TxIn;
+use crate::transaction::txout::TxOut;
+use crate::{OutPoint, ScriptBuf, address};
 
 /// Encoding error.
 #[derive(Debug)]

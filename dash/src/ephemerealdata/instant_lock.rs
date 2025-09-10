@@ -12,11 +12,11 @@ use hashes::{Hash, HashEngine};
 pub use std::vec::Vec;
 
 use crate::bls_sig_utils::BLSSignature;
-use crate::consensus::{Encodable, encode::VarInt};
+use crate::consensus::Encodable;
 use crate::hash_types::{CycleHash, QuorumHash, QuorumSigningRequestId, QuorumSigningSignId, Txid};
 use crate::internal_macros::impl_consensus_encoding;
 use crate::sml::llmq_type::LLMQType;
-use crate::io;
+use crate::{OutPoint, VarInt, io};
 
 const IS_LOCK_REQUEST_ID_PREFIX: &str = "islock";
 
