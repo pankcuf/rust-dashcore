@@ -37,6 +37,7 @@
 #[cfg(feature = "bincode")]
 use bincode::{Decode, Encode};
 use hashes::Hash;
+
 use crate::blockdata::transaction::special_transaction::SpecialTransactionBasePayloadEncodable;
 use crate::blockdata::transaction::special_transaction::provider_registration::ProviderMasternodeType;
 use crate::bls_sig_utils::BLSSignature;
