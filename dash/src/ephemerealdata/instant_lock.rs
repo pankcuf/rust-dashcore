@@ -13,10 +13,10 @@ pub use std::vec::Vec;
 
 use crate::bls_sig_utils::BLSSignature;
 use crate::consensus::Encodable;
-use crate::hash_types::{CycleHash, QuorumHash, QuorumSigningRequestId, QuorumSigningSignId, Txid};
+use crate::hash_types::{CycleHash, QuorumSigningRequestId, QuorumSigningSignId};
 use crate::internal_macros::impl_consensus_encoding;
 use crate::sml::llmq_type::LLMQType;
-use crate::{OutPoint, VarInt, io};
+use crate::{OutPoint, QuorumHash, Txid, VarInt, io};
 
 const IS_LOCK_REQUEST_ID_PREFIX: &str = "islock";
 

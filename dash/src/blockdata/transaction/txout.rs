@@ -24,8 +24,7 @@
 use bincode::{Decode, Encode};
 
 use crate::internal_macros::impl_consensus_encoding;
-use crate::{Address, ScriptBuf, VarInt};
-use crate::hash_types::{PubkeyHash, ScriptHash};
+use crate::{Address, PubkeyHash, ScriptBuf, ScriptHash, VarInt};
 
 /// A transaction output, which defines new coins to be created from old ones.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
