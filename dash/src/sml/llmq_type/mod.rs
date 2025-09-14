@@ -13,6 +13,7 @@ use dash_network::Network;
 /// Represents a DKG (Distributed Key Generation) mining window
 /// This is the range of blocks where a quorum commitment can be mined
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "apple", ferment_macro::export)]
 pub struct DKGWindow {
     /// The first block of the DKG cycle (e.g., 0, 24, 48, 72...)
     pub cycle_start: u32,
