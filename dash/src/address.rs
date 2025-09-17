@@ -72,6 +72,7 @@ use serde::{Deserialize, Serialize};
 /// Address error.
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[non_exhaustive]
+#[cfg_attr(feature = "apple", ferment_macro::export)]
 pub enum Error {
     /// Base58 encoding error.
     Base58(base58::Error),
@@ -687,6 +688,7 @@ pub enum NetworkChecked {}
 /// Marker that address's network has not yet been validated. See section [*Parsing addresses*](Address#parsing-addresses)
 /// on [`Address`] for details.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "apple", ferment_macro::export)]
 pub enum NetworkUnchecked {}
 
 impl NetworkValidation for NetworkChecked {

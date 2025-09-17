@@ -11,6 +11,7 @@ use std::fmt;
 #[non_exhaustive]
 #[repr(u8)]
 #[cfg_attr(feature = "bincode", derive(Encode, Decode))]
+#[cfg_attr(feature = "apple", ferment_macro::export)]
 pub enum Network {
     /// Classic Dash Core Payment Chain
     Dash,

@@ -65,6 +65,7 @@ use crate::{OutPoint, ProTxHash, ScriptBuf, address};
 /// Encoding error.
 #[derive(Debug)]
 #[non_exhaustive]
+#[cfg_attr(feature = "apple", ferment_macro::export)]
 pub enum Error {
     /// And I/O error.
     Io(io::Error),
