@@ -688,7 +688,6 @@ pub enum NetworkChecked {}
 /// Marker that address's network has not yet been validated. See section [*Parsing addresses*](Address#parsing-addresses)
 /// on [`Address`] for details.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "apple", ferment_macro::export)]
 pub enum NetworkUnchecked {}
 
 impl NetworkValidation for NetworkChecked {
