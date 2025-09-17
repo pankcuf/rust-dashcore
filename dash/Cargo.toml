@@ -70,8 +70,8 @@ blake3 = "1.8.1"
 thiserror = "2"
 bitvec = "1.0"
 log = "0.4"
-ferment = { version = "0.2", package = "ferment", optional = true }
-ferment-macro = { version = "0.2", package = "ferment-macro", optional = true }
+ferment = { version = "0.2", optional = true }
+ferment-macro = { version = "0.2", optional = true }
 
 [dev-dependencies]
 serde_json = "1.0.140"
