@@ -27,6 +27,7 @@ use crate::alloc::vec::Vec;
 
 /// Hex decoding error.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "apple", ferment_macro::export)]
 pub enum Error {
     /// Non-hexadecimal character.
     InvalidChar(u8),

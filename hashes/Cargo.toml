@@ -19,6 +19,7 @@ alloc = ["internals/alloc"]
 schemars = ["actual-schemars"]
 serde-std = ["serde/std"]
 x11 = ["rs-x11-hash"]
+apple = ["ferment-macro"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -37,6 +38,7 @@ secp256k1 = { default-features = false, features = ["hashes"], version= "0.30.0"
 rs-x11-hash = { version = "0.1.8", optional = true }
 bincode = { version= "=2.0.0-rc.3", optional = true }
 bincode_derive = { version= "=2.0.0-rc.3", optional = true }
+ferment-macro = { version = "0.2", optional = true }
 
 [dev-dependencies]
 serde_test = "1.0"
